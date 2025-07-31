@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/signup_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'themes/app_theme.dart';
 
 void main() {
   runApp(MyApp());
@@ -12,7 +13,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '랜덤통화 매칭 앱',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: appTheme,
       initialRoute: '/login',
       routes: {
         '/signup': (context) => SignUpScreen(),
