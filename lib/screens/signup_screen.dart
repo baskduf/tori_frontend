@@ -78,6 +78,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     return MainLayout(
       title: '회원가입',
+      appBarActions: [],
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [

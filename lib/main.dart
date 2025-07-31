@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:tori_frontend/screens/match_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/match_settings_screen.dart';
 import 'themes/app_theme.dart';
 
 void main() {
@@ -19,6 +21,8 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => SignUpScreen(),
         '/login': (context) => LoginScreen(),
         '/home': (context) => HomeScreen(),
+        '/match': (context) => MatchScreen(),
+        '/match_settings': (context) => MatchSettingsScreen(),
       },
     );
   }

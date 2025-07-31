@@ -52,6 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return MainLayout(
       title: '로그인',
       showBack: false,
+      appBarActions: [],
       child: Form(
         key: _formKey,
         child: Column(

@@ -45,21 +45,40 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _goToMatchSettings() {
+    Navigator.pushNamed(context, '/match_settings');
+  }
+
+  void _goToMatchScreen() {
+    Navigator.pushNamed(context, '/match');
+  }
 
   @override
   Widget build(BuildContext context) {
     return MainLayout(
       title: '홈',
       showBack: false,
+      appBarActions: [
+        IconButton(
+          icon: const Icon(Icons.settings),
+          tooltip: '매칭 설정',
+          onPressed: _goToMatchSettings,
+        ),
+        IconButton(
+          icon: const Icon(Icons.logout),
+          tooltip: '로그아웃',
+          onPressed: _logout,
+        ),
+      ],
       child: Center(
         child: _isLoggingOut
             ? const CircularProgressIndicator()
             : PrimaryButton(
-          text: '로그아웃',
-          onPressed: _logout,
+          text: '매칭 시작',
+          onPressed: _goToMatchScreen,
           width: 150,
           height: 45,
-          color: Colors.redAccent,
+          color: Colors.blueAccent,
         ),
       ),
     );
