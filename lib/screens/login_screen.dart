@@ -1,66 +1,88 @@
 import 'package:flutter/material.dart';
-import '../api_service.dart';
+import '../layouts/main_layout.dart';
+import '../widgets/custom_textfield.dart';
+import '../widgets/primary_button.dart';
+import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
   final _apiService = ApiService();
 
   final _formKey = GlobalKey<FormState>();
-  String username = '';
-  String password = '';
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  bool _isLoading = false;
 
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    _formKey.currentState!.save();
+    setState(() {
+      _isLoading = true;
+    });
 
-    bool success = await _apiService.login(username: username, password: password);
+    bool success = await _apiService.login(
+      username: _usernameController.text.trim(),
+      password: _passwordController.text,
+    );
+
+    setState(() {
+      _isLoading = false;
+    });
+
     if (success) {
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('로그인 실패')),
+        const SnackBar(content: Text('로그인 실패')),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(title: Text('로그인')),
-        body: Padding(
-          padding: EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                TextFormField(
-                  decoration: InputDecoration(labelText: '아이디'),
-                  onSaved: (val) => username = val ?? '',
-                  validator: (val) => val == null || val.isEmpty ? '필수 입력' : null,
-                ),
-                TextFormField(
-                  decoration: InputDecoration(labelText: '비밀번호'),
-                  obscureText: true,
-                  onSaved: (val) => password = val ?? '',
-                  validator: (val) => val == null || val.isEmpty ? '필수 입력' : null,
-                ),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _submit,
-                  child: Text('로그인'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pushNamed(context, '/signup'),
-                  child: Text('회원가입 하러 가기'),
-                )
-              ],
+    return MainLayout(
+      title: '로그인',
+      showBack: false,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CustomTextField(
+              hint: '아이디',
+              controller: _usernameController,
+              validator: (val) => val == null || val.isEmpty ? '필수 입력' : null, keyboardType: TextInputType.text,
             ),
-          ),
-        ));
+            const SizedBox(height: 16),
+            CustomTextField(
+              hint: '비밀번호',
+              controller: _passwordController,
+              obscure: true,
+              validator: (val) => val == null || val.isEmpty ? '필수 입력' : null, keyboardType: TextInputType.text,
+            ),
+            const SizedBox(height: 24),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : PrimaryButton(
+              text: '로그인',
+              onPressed: _submit,
+            ),
+            TextButton(
+              onPressed: () => Navigator.pushNamed(context, '/signup'),
+              child: const Text('회원가입 하러 가기'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
