@@ -1,6 +1,9 @@
-import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:io' as io;
+
 import '../layouts/main_layout.dart';
 import '../widgets/custom_textfield.dart';
 import '../widgets/primary_button.dart';
@@ -15,29 +18,37 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _apiService = ApiService();
-
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
 
   String gender = 'male';
-  File? _profileImage;
+  io.File? _profileImage;
+  Uint8List? _webImageBytes;
   bool _isLoading = false;
-
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      setState(() {
-        _profileImage = File(pickedFile.path);
-      });
+      if (kIsWeb) {
+        final bytes = await pickedFile.readAsBytes();
+        setState(() {
+          _webImageBytes = bytes;
+        });
+      } else {
+        setState(() {
+          _profileImage = io.File(pickedFile.path);
+        });
+      }
     }
   }
 
   void _submit() async {
-    if (!_formKey.currentState!.validate() || _profileImage == null) {
+    if (!_formKey.currentState!.validate() ||
+        (!kIsWeb && _profileImage == null) ||
+        (kIsWeb && _webImageBytes == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('모든 필드를 채우고 프로필 사진을 선택하세요')),
       );
@@ -53,8 +64,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       password: _passwordController.text,
       age: int.tryParse(_ageController.text) ?? 18,
       gender: gender,
-      profileImagePath: _profileImage!.path,
+      profileImageBytes: kIsWeb ? _webImageBytes : null,
+      profileImageFile: kIsWeb ? null : _profileImage,
     );
+
 
     setState(() {
       _isLoading = false;
@@ -90,7 +103,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   hint: '아이디',
                   controller: _usernameController,
                   validator: (val) =>
-                  val == null || val.isEmpty ? '필수 입력' : null, keyboardType: TextInputType.text,
+                  val == null || val.isEmpty ? '필수 입력' : null,
+                  keyboardType: TextInputType.text,
                 ),
                 const SizedBox(height: 16),
                 CustomTextField(
@@ -98,7 +112,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   controller: _passwordController,
                   obscure: true,
                   validator: (val) =>
-                  val == null || val.length < 6 ? '6자 이상 입력' : null, keyboardType: TextInputType.text,
+                  val == null || val.length < 6 ? '6자 이상 입력' : null,
+                  keyboardType: TextInputType.text,
                 ),
                 const SizedBox(height: 16),
                 CustomTextField(
@@ -122,9 +137,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   decoration: const InputDecoration(labelText: '성별'),
                 ),
                 const SizedBox(height: 20),
-                _profileImage == null
-                    ? const Text('프로필 사진을 선택하세요')
-                    : Image.file(_profileImage!, height: 150),
+                if (_profileImage == null && _webImageBytes == null)
+                  const Text('프로필 사진을 선택하세요')
+                else if (kIsWeb && _webImageBytes != null)
+                  Image.memory(_webImageBytes!, height: 150)
+                else if (_profileImage != null)
+                    Image.file(_profileImage!, height: 150),
                 ElevatedButton(
                   onPressed: _pickImage,
                   child: const Text('사진 선택'),

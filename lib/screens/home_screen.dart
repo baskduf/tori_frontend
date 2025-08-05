@@ -74,7 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: _isLoggingOut
             ? const CircularProgressIndicator()
             : PrimaryButton(
-          text: '매칭 시작',
+          text: '시작하기',
           onPressed: _goToMatchScreen,
           width: 150,
           height: 45,
