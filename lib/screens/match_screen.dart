@@ -11,6 +11,7 @@ enum MatchStatus {
   waiting_response,
   success,
   rejected,
+  cancelled
 }
 
 class MatchScreen extends StatefulWidget {
@@ -54,6 +55,10 @@ class _MatchScreenState extends State<MatchScreen> {
         case 'match_success':
           _onMatchSuccess(data['room']);
           break;
+        case 'match_cancelled':
+          _onMatchCancelled(data['from']);
+          break;
+
       }
     }, onError: (error) {
       print('WebSocket error: $error');
@@ -74,6 +79,14 @@ class _MatchScreenState extends State<MatchScreen> {
       _matchedUserName = partnerName;
       _setStatus(MatchStatus.matched);
     });
+  }
+
+  void _onMatchCancelled(String fromUser) {
+    if (_status == MatchStatus.matched ||
+        _status == MatchStatus.waiting_response || _status == MatchStatus.success) {
+      _setStatus(MatchStatus.cancelled);
+      _matchedUserName = '';
+    }
   }
 
   void _onMatchResponse(String result, String fromUser) {
@@ -131,9 +144,15 @@ class _MatchScreenState extends State<MatchScreen> {
       'partner': _matchedUserName,
       'response': 'reject',
     }));
-    _setStatus(MatchStatus.idle);
+
+    // 상태 변경 후 매칭 재시작 메시지 전송
+    _setStatus(MatchStatus.searching);
     _matchedUserName = '';
+
+    // 다시 큐에 참여 요청
+    _channel.sink.add(json.encode({'action': 'join_queue'}));
   }
+
 
   @override
   void dispose() {
@@ -183,10 +202,13 @@ class _MatchScreenState extends State<MatchScreen> {
             ),
             const SizedBox(height: 10),
             ElevatedButton(
-              onPressed: _rejectMatch,
+              onPressed: () {
+                _rejectMatch();
+              },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: const Text('거절'),
             ),
+
             const SizedBox(height: 20),
             const Text('6초 내 응답하지 않으면 자동 거절 처리됩니다.'),
           ],
@@ -222,6 +244,20 @@ class _MatchScreenState extends State<MatchScreen> {
         );
         Future.delayed(const Duration(seconds: 3), () {
           if (_status == MatchStatus.rejected) {
+            _startMatching();
+          }
+        });
+        break;
+
+      case MatchStatus.cancelled:
+        content = const Center(
+          child: Text(
+            '상대가 매칭을 이탈했습니다.',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
+          ),
+        );
+        Future.delayed(const Duration(seconds: 3), () {
+          if (_status == MatchStatus.cancelled) {
             _startMatching();
           }
         });

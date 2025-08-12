@@ -40,7 +40,7 @@ class MatchSetting {
 }
 
 class MatchService {
-  static const String baseUrl = 'http://localhost:8000/api/match/settings/';
+  static const String baseUrl = 'http://localhost:8000/api/settings/';
   final FlutterSecureStorage storage = FlutterSecureStorage();
 
   Future<String?> _getToken() async {

@@ -12,7 +12,7 @@ class _MatchSettingsScreenState extends State<MatchSettingsScreen> {
   final MatchService _matchService = MatchService();
   final _formKey = GlobalKey<FormState>();
 
-  String _preferredGender = 'all';
+  String _preferredGender = 'any';
   RangeValues _ageRange = const RangeValues(20, 30);
   int _radiusKm = 10;
 
@@ -57,11 +57,11 @@ class _MatchSettingsScreenState extends State<MatchSettingsScreen> {
     return DropdownButtonFormField<String>(
       value: _preferredGender,
       items: const [
-        DropdownMenuItem(value: 'all', child: Text('상관없음')),
+        DropdownMenuItem(value: 'any', child: Text('상관없음')),
         DropdownMenuItem(value: 'male', child: Text('남성')),
         DropdownMenuItem(value: 'female', child: Text('여성')),
       ],
-      onChanged: (value) => setState(() => _preferredGender = value ?? 'all'),
+      onChanged: (value) => setState(() => _preferredGender = value ?? 'any'),
       decoration: const InputDecoration(
         border: OutlineInputBorder(),
         contentPadding: EdgeInsets.symmetric(horizontal: 12),
