@@ -1,7 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../services/signaling_service.dart';
 import '../screens/match_screen.dart';
+import '../widgets/sound_bar_widget.dart';
 
 class VoiceChatScreen extends StatefulWidget {
   final String roomName;
@@ -17,17 +19,29 @@ class VoiceChatScreen extends StatefulWidget {
   _VoiceChatScreenState createState() => _VoiceChatScreenState();
 }
 
-class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProviderStateMixin {
+class _VoiceChatScreenState extends State<VoiceChatScreen>
+    with TickerProviderStateMixin {
   SignalingService? _signaling;
   MediaStream? _remoteStream;
+
   late AnimationController _animationController;
+  late AnimationController _volumeController;
 
   @override
   void initState() {
     super.initState();
 
-    _animationController = AnimationController(vsync: this, duration: const Duration(seconds: 2))
-      ..repeat(reverse: true);
+    // 상태 애니메이션 (FadeTransition 용)
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    // 가상 볼륨 애니메이션 (0~1 값 반복)
+    _volumeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
 
     _signaling = SignalingService(
       roomName: widget.roomName,
@@ -39,7 +53,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
       },
       onStatusChanged: (status) {
         if (status == 'cancelled' && mounted) {
-          Navigator.of(context).pop(); // 음성채팅 종료
+          Navigator.of(context).pop();
         }
       },
     );
@@ -52,14 +66,14 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
   @override
   void dispose() {
     _animationController.dispose();
+    _volumeController.dispose();
     _signaling?.dispose();
     super.dispose();
   }
 
   void _goToMatchScreen() {
     _signaling?.dispose();
-
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (_) => MatchScreen(initialStatus: MatchStatus.searching),
@@ -71,11 +85,33 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, size: 28, color: color),
+        Icon(
+          icon,
+          size: 28,
+          color: color.withOpacity(0.85),
+          shadows: const [
+            Shadow(
+              color: Colors.black45,
+              offset: Offset(0, 1),
+              blurRadius: 3,
+            ),
+          ],
+        ),
         const SizedBox(width: 12),
         Text(
           label,
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: color),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: color.withOpacity(0.9),
+            shadows: const [
+              Shadow(
+                color: Colors.black45,
+                offset: Offset(0, 1),
+                blurRadius: 3,
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -87,8 +123,33 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
     final remoteAudioActive = _remoteStream != null;
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text('Voice Chat - Room: ${widget.roomName}'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(
+          color: Colors.white.withOpacity(0.7),
+          shadows: const [
+            Shadow(
+              color: Colors.black54,
+              offset: Offset(0, 1),
+              blurRadius: 4,
+            ),
+          ],
+        ),
+        title: Text(
+          'Voice Chat - Room: ${widget.roomName}',
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.7),
+            shadows: const [
+              Shadow(
+                color: Colors.black54,
+                offset: Offset(0, 1),
+                blurRadius: 4,
+              ),
+            ],
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.arrow_forward_ios),
@@ -97,67 +158,160 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
           ),
         ],
       ),
-      body: GestureDetector(
-        onHorizontalDragEnd: (details) {
-          if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
-            _goToMatchScreen();
-          }
-        },
-        child: Center(
-          child: Card(
-            elevation: 12,
-            margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 50),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 30),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 타이틀
-                  Text(
-                    '음성 채팅 상태',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blueAccent),
-                  ),
-                  const SizedBox(height: 40),
-
-                  // 로컬 오디오 상태
-                  _buildStatusRow(
-                    Icons.mic,
-                    localAudioActive ? '로컬 오디오 활성화됨' : '로컬 오디오 대기 중...',
-                    localAudioActive ? Colors.green : Colors.grey,
-                  ),
-                  const SizedBox(height: 30),
-
-                  // 원활한 상태 표현 애니메이션 (예: 점멸하는 원)
-                  FadeTransition(
-                    opacity: _animationController.drive(
-                      Tween(begin: 0.5, end: 1.0),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF1A1A1A),
+              Color(0xFF2E2E2E),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: GestureDetector(
+          onHorizontalDragEnd: (details) {
+            if (details.primaryVelocity != null &&
+                details.primaryVelocity! > 0) {
+              _goToMatchScreen();
+            }
+          },
+          child: Center(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 500),
+                  padding:
+                  const EdgeInsets.symmetric(vertical: 40, horizontal: 30),
+                  margin:
+                  const EdgeInsets.symmetric(horizontal: 30, vertical: 50),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.2),
+                      width: 1,
                     ),
-                    child: _buildStatusRow(
-                      Icons.headset,
-                      remoteAudioActive ? '상대방 오디오 수신 중' : '상대방 오디오 대기 중...',
-                      remoteAudioActive ? Colors.green : Colors.grey,
-                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.25),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '음성 채팅 상태',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white.withOpacity(0.9),
+                          shadows: const [
+                            Shadow(
+                              color: Colors.black54,
+                              offset: Offset(0, 1),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 40),
 
-                  const SizedBox(height: 50),
+                      // 로컬 오디오 상태 텍스트
+                      _buildStatusRow(
+                        Icons.mic,
+                        localAudioActive
+                            ? '로컬 오디오 활성화됨'
+                            : '로컬 오디오 대기 중...',
+                        localAudioActive
+                            ? Colors.lightGreenAccent.shade400
+                            : Colors.white70,
+                      ),
+                      const SizedBox(height: 8),
 
-                  // 종료 버튼 (직관적 UI)
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      _signaling?.dispose();
-                      Navigator.of(context).pop();
-                    },
-                    icon: const Icon(Icons.call_end, color: Colors.white),
-                    label: const Text('통화 종료', style: TextStyle(fontSize: 18)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      elevation: 6,
-                    ),
+                      // 내 목소리 볼륨 바 (가상 애니메이션)
+                      AnimatedBuilder(
+                        animation: _volumeController,
+                        builder: (_, __) {
+                          double level =
+                          localAudioActive ? _volumeController.value : 0.0;
+                          return SoundLevelBar(level: level);
+                        },
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      // 상대방 오디오 상태 텍스트 (FadeTransition 애니메이션)
+                      FadeTransition(
+                        opacity: _animationController.drive(
+                          Tween(begin: 0.5, end: 1.0).chain(
+                            CurveTween(curve: Curves.easeInOut),
+                          ),
+                        ),
+                        child: _buildStatusRow(
+                          Icons.headset,
+                          remoteAudioActive
+                              ? '상대방 오디오 수신 중'
+                              : '상대방 오디오 대기 중...',
+                          remoteAudioActive
+                              ? Colors.lightGreenAccent.shade400
+                              : Colors.white70,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // 상대방 목소리 볼륨 바 (가상 애니메이션 반대 방향)
+                      AnimatedBuilder(
+                        animation: _volumeController,
+                        builder: (_, __) {
+                          double level =
+                          remoteAudioActive ? 1 - _volumeController.value : 0.0;
+                          return SoundLevelBar(level: level);
+                        },
+                      ),
+
+                      const SizedBox(height: 50),
+
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          _signaling?.dispose();
+                          Navigator.of(context).pop();
+                        },
+                        icon: const Icon(Icons.call_end, color: Colors.white),
+                        label: const Text(
+                          '통화 종료',
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black87,
+                                  offset: Offset(0, 2),
+                                  blurRadius: 6,
+                                )
+                              ]),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                          Colors.redAccent.withOpacity(0.85),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 30, vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          elevation: 10,
+                          shadowColor: Colors.redAccent.shade700,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),

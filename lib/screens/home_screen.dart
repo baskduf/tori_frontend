@@ -1,7 +1,8 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
-import '../layouts/main_layout.dart';
-import '../widgets/primary_button.dart';
 import '../services/auth_service.dart';
+import '../widgets/logo_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -10,9 +11,32 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   final ApiService apiService = ApiService();
   bool _isLoggingOut = false;
+
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(begin: 0.85, end: 1.05).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   Future<void> _logout() async {
     setState(() {
@@ -65,53 +89,154 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return MainLayout(
-      title: '홈',
-      showBack: false,
-      appBarActions: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: IconButton(
+    const backgroundColor = Color(0xFF121212);
+
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: const Text('홈'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
             icon: const Icon(Icons.settings),
             tooltip: '매칭 설정',
             onPressed: _goToMatchSettings,
             splashRadius: 24,
+            color: Colors.white70,
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: IconButton(
+          IconButton(
             icon: const Icon(Icons.logout),
             tooltip: '로그아웃',
             onPressed: _isLoggingOut ? null : _logout,
             splashRadius: 24,
-            color: _isLoggingOut ? Colors.grey : null,
+            color: _isLoggingOut ? Colors.grey : Colors.white70,
           ),
-        ),
-      ],
-      child: Center(
-        child: _isLoggingOut
-            ? Column(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            CircularProgressIndicator(strokeWidth: 3),
-            SizedBox(height: 16),
-            Text(
-              '로그아웃 처리 중...',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ],
+      ),
+      backgroundColor: backgroundColor,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 배경 그라데이션
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF0B0B0B), Color(0xFF1E1E1E)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
-          ],
-        )
-            : PrimaryButton(
-          text: '시작하기',
-          onPressed: _goToMatchScreen,
-          width: 180,
-          height: 50,
-          color: Colors.blueAccent,
-          borderRadius: 30,
-          //elevation: 6,
-          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
+          ),
+
+          // Glassmorphism + Pulse 애니메이션 버튼 (중앙 하단 위치에 배치)
+          Align(
+            alignment: Alignment(0, 0.6), // 화면 아래쪽 중앙 (조절 가능)
+            child: ScaleTransition(
+              scale: _pulseAnimation,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                  child: Container(
+                    width: 220,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(32),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.25),
+                        width: 1.8,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.18),
+                          blurRadius: 12,
+                          spreadRadius: 3,
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.6),
+                          offset: const Offset(0, 2),
+                          blurRadius: 8,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: _isLoggingOut
+                        ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        SizedBox(
+                          width: 26,
+                          height: 26,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3.2,
+                            valueColor: AlwaysStoppedAnimation(Colors.white70),
+                          ),
+                        ),
+                        SizedBox(width: 14),
+                        Text(
+                          '로그아웃 처리 중...',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white70,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black38,
+                                offset: Offset(1, 1),
+                                blurRadius: 2,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    )
+                        : TextButton(
+                      onPressed: _goToMatchScreen,
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32),
+                        ),
+                      ).copyWith(
+                        overlayColor: MaterialStateProperty.resolveWith<Color?>(
+                              (states) {
+                            if (states.contains(MaterialState.pressed)) {
+                              return Colors.white24;
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      child: const Text(
+                        '시작하기',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black54,
+                              offset: Offset(1, 2),
+                              blurRadius: 3,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // LogoWidget - 화면 상단 중앙에 배치
+          Align(
+            alignment: const Alignment(0, -0.8), // 위쪽 중앙 (필요시 조절)
+            child: const Logo(),
+          ),
+        ],
       ),
     );
   }

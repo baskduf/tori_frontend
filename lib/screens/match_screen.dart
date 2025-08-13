@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -27,6 +28,7 @@ class MatchScreen extends StatefulWidget {
 class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStateMixin {
   late MatchStatus _status;
   String _matchedUserName = '';
+  String? _matchedUserImageUrl = '';
   Timer? _responseTimer;
   final int _responseTimeoutSeconds = 6;
 
@@ -68,7 +70,7 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
       final data = json.decode(message);
       switch (data['type']) {
         case 'match_found':
-          _onMatchFound(data['partner']);
+          _onMatchFound(data['partner'], data['partner_image_url']);
           break;
         case 'match_response':
           _onMatchResponse(data['result'], data['from']);
@@ -96,9 +98,10 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
     });
   }
 
-  void _onMatchFound(String partnerName) {
+  void _onMatchFound(String partnerName, dynamic partnerImageUrl) {
     setState(() {
       _matchedUserName = partnerName;
+      _matchedUserImageUrl = partnerImageUrl ?? '';
       _setStatus(MatchStatus.matched);
     });
   }
@@ -239,19 +242,65 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
     });
   }
 
+  Widget _glassContainer({required Widget child, double? width, double? height}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          width: width,
+          height: height,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.18),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.white.withOpacity(0.15),
+                blurRadius: 10,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
   Widget _buildSearchingContent() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const SizedBox(
-          width: 60,
-          height: 60,
-          child: CircularProgressIndicator(strokeWidth: 6),
+        _glassContainer(
+          width: 140,
+          height: 140,
+          child: const Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 6,
+              valueColor: AlwaysStoppedAnimation(Colors.white70),
+            ),
+          ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 30),
         const Text(
           '매칭 상대를 찾는 중...',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: Colors.blueAccent),
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: Colors.white70,
+            shadows: [
+              Shadow(
+                color: Colors.black54,
+                offset: Offset(0, 1),
+                blurRadius: 2,
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -261,49 +310,111 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.people_alt, size: 70, color: Colors.blue.shade700),
-        const SizedBox(height: 18),
+        _glassContainer(
+          width: 110,
+          height: 110,
+          child: (_matchedUserImageUrl != null && _matchedUserImageUrl!.isNotEmpty)
+              ? CircleAvatar(
+            radius: 40,
+            backgroundImage: NetworkImage(_matchedUserImageUrl!),
+            backgroundColor: Colors.transparent,
+          )
+              : Icon(
+            Icons.people_alt,
+            size: 70,
+            color: Colors.white70,
+            shadows: const [
+              Shadow(
+                color: Colors.black45,
+                offset: Offset(0, 2),
+                blurRadius: 3,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 22),
         Text(
           '매칭 상대 발견: $_matchedUserName',
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            shadows: [
+              Shadow(
+                color: Colors.black87,
+                offset: Offset(1, 1),
+                blurRadius: 3,
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 30),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton.icon(
+            _glassButton(
+              icon: Icons.check,
+              label: '수락',
+              color: Colors.greenAccent.shade400,
               onPressed: _acceptMatch,
-              icon: const Icon(Icons.check),
-              label: const Text('수락'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                textStyle: const TextStyle(fontSize: 18),
-                elevation: 5,
-              ),
             ),
-            const SizedBox(width: 25),
-            ElevatedButton.icon(
+            const SizedBox(width: 26),
+            _glassButton(
+              icon: Icons.close,
+              label: '거절',
+              color: Colors.redAccent.shade400,
               onPressed: _rejectMatch,
-              icon: const Icon(Icons.close),
-              label: const Text('거절'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                textStyle: const TextStyle(fontSize: 18),
-                elevation: 5,
-              ),
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 18),
         const Text(
           '6초 내 응답하지 않으면 자동으로 거절됩니다.',
-          style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            color: Colors.white60,
+            fontWeight: FontWeight.w500,
+            shadows: [
+              Shadow(
+                color: Colors.black45,
+                offset: Offset(0, 1),
+                blurRadius: 1,
+              ),
+            ],
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _glassButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, color: Colors.white, shadows: const [
+        Shadow(color: Colors.black45, offset: Offset(0, 1), blurRadius: 2)
+      ]),
+      label: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          shadows: [
+            Shadow(color: Colors.black45, offset: Offset(0, 1), blurRadius: 2)
+          ],
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color.withOpacity(0.75),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        elevation: 10,
+        shadowColor: Colors.black87,
+      ),
     );
   }
 
@@ -311,15 +422,31 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const SizedBox(
-          width: 60,
-          height: 60,
-          child: CircularProgressIndicator(strokeWidth: 6),
+        _glassContainer(
+          width: 140,
+          height: 140,
+          child: const Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 6,
+              valueColor: AlwaysStoppedAnimation(Colors.white70),
+            ),
+          ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 22),
         const Text(
           '상대방의 응답을 기다리는 중...',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.blueGrey),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.white70,
+            shadows: [
+              Shadow(
+                color: Colors.black54,
+                offset: Offset(0, 1),
+                blurRadius: 2,
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -327,17 +454,44 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
 
   Widget _buildSuccessContent() {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.check_circle_outline, size: 80, color: Colors.green.shade600),
-          const SizedBox(height: 24),
-          const Text(
-            '매칭이 완료되었습니다!\n대화를 시작하세요.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        ],
+      child: _glassContainer(
+        width: 220,
+        height: 220,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.check_circle_outline,
+              size: 80,
+              color: Colors.greenAccent.shade400,
+              shadows: const [
+                Shadow(
+                  color: Colors.black54,
+                  offset: Offset(0, 2),
+                  blurRadius: 3,
+                ),
+              ],
+            ),
+            const SizedBox(height: 26),
+            const Text(
+              '매칭이 완료되었습니다!\n대화를 시작하세요.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                shadows: [
+                  Shadow(
+                    color: Colors.black87,
+                    offset: Offset(1, 1),
+                    blurRadius: 3,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -345,8 +499,18 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     if (!_channelInitialized) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        backgroundColor: _backgroundGradientStart,
+        body: Center(
+          child: _glassContainer(
+            width: 140,
+            height: 140,
+            child: const CircularProgressIndicator(
+              strokeWidth: 6,
+              valueColor: AlwaysStoppedAnimation(Colors.white70),
+            ),
+          ),
+        ),
       );
     }
 
@@ -366,8 +530,6 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
         content = _buildSuccessContent();
         break;
       case MatchStatus.rejected:
-      // rejected 상태는 실제 UI는 searching 화면에 메시지만 띄우고 있으므로
-      // _showMessage() 함수로 메시지 띄운 뒤 searching UI 출력
         _showMessage('상대가 매칭을 거절했습니다.', isError: true);
         _setStatus(MatchStatus.searching);
         _channel.sink.add(json.encode({'action': 'join_queue'}));
@@ -382,19 +544,50 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
     }
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text('매칭 화면'),
         centerTitle: true,
-        elevation: 3,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: Colors.white70),
+        titleTextStyle: const TextStyle(
+          color: Colors.white70,
+          fontWeight: FontWeight.bold,
+          fontSize: 20,
+          shadows: [
+            Shadow(
+              color: Colors.black54,
+              offset: Offset(0, 1),
+              blurRadius: 2,
+            ),
+          ],
+        ),
       ),
-      body: Center(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 400),
-          child: content,
-          switchInCurve: Curves.easeIn,
-          switchOutCurve: Curves.easeOut,
+      backgroundColor: null,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF121212),
+              Color(0xFF1E1E1E),
+              Color(0xFF2B2B2B),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 500),
+            child: content,
+            switchInCurve: Curves.easeInOut,
+            switchOutCurve: Curves.easeInOut,
+          ),
         ),
       ),
     );
   }
 }
+
+const _backgroundGradientStart = Color(0xFF121212);
