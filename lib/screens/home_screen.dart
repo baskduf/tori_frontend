@@ -27,15 +27,11 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('로그아웃 실패')),
-        );
+        _showSnackBar('로그아웃 실패');
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('오류 발생: $e')),
-      );
+      _showSnackBar('오류 발생: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -53,32 +49,68 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.pushNamed(context, '/match');
   }
 
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+        backgroundColor: Colors.redAccent.shade700,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return MainLayout(
       title: '홈',
       showBack: false,
       appBarActions: [
-        IconButton(
-          icon: const Icon(Icons.settings),
-          tooltip: '매칭 설정',
-          onPressed: _goToMatchSettings,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: '매칭 설정',
+            onPressed: _goToMatchSettings,
+            splashRadius: 24,
+          ),
         ),
-        IconButton(
-          icon: const Icon(Icons.logout),
-          tooltip: '로그아웃',
-          onPressed: _logout,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: '로그아웃',
+            onPressed: _isLoggingOut ? null : _logout,
+            splashRadius: 24,
+            color: _isLoggingOut ? Colors.grey : null,
+          ),
         ),
       ],
       child: Center(
         child: _isLoggingOut
-            ? const CircularProgressIndicator()
+            ? Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            CircularProgressIndicator(strokeWidth: 3),
+            SizedBox(height: 16),
+            Text(
+              '로그아웃 처리 중...',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+          ],
+        )
             : PrimaryButton(
           text: '시작하기',
           onPressed: _goToMatchScreen,
-          width: 150,
-          height: 45,
+          width: 180,
+          height: 50,
           color: Colors.blueAccent,
+          borderRadius: 30,
+          //elevation: 6,
+          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
     );

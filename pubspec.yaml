@@ -33,6 +33,7 @@ dependencies:
   http: ^0.13.0
   flutter_secure_storage: ^7.0.1
   image_picker: ^0.8.5+3
+  flutter_webrtc: ^1.0.0
   web_socket_channel: ^2.3.0
 
   # The following adds the Cupertino Icons font to your application.

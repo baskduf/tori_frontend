@@ -1,28 +1,31 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'voice_chat_screen.dart';
 
 enum MatchStatus {
-  idle,
   searching,
   matched,
   waiting_response,
   success,
   rejected,
-  cancelled
+  cancelled,
 }
 
 class MatchScreen extends StatefulWidget {
-  const MatchScreen({super.key});
+  final MatchStatus initialStatus;
+
+  const MatchScreen({super.key, required this.initialStatus});
 
   @override
   State<MatchScreen> createState() => _MatchScreenState();
 }
 
-class _MatchScreenState extends State<MatchScreen> {
-  MatchStatus _status = MatchStatus.idle;
+class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStateMixin {
+  late MatchStatus _status;
   String _matchedUserName = '';
   Timer? _responseTimer;
   final int _responseTimeoutSeconds = 6;
@@ -30,10 +33,28 @@ class _MatchScreenState extends State<MatchScreen> {
   late WebSocketChannel _channel;
   bool _channelInitialized = false;
 
+  late AnimationController _animationController;
+
   @override
   void initState() {
     super.initState();
+
+    _status = widget.initialStatus;
+
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
     _initWebSocket();
+  }
+
+  @override
+  void dispose() {
+    _responseTimer?.cancel();
+    if (_channelInitialized) _channel.sink.close();
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _initWebSocket() async {
@@ -58,7 +79,6 @@ class _MatchScreenState extends State<MatchScreen> {
         case 'match_cancelled':
           _onMatchCancelled(data['from']);
           break;
-
       }
     }, onError: (error) {
       print('WebSocket error: $error');
@@ -68,6 +88,8 @@ class _MatchScreenState extends State<MatchScreen> {
     }, onDone: () {
       print('WebSocket closed');
     });
+
+    _channel.sink.add(json.encode({'action': 'join_queue'}));
 
     setState(() {
       _channelInitialized = true;
@@ -83,20 +105,44 @@ class _MatchScreenState extends State<MatchScreen> {
 
   void _onMatchCancelled(String fromUser) {
     if (_status == MatchStatus.matched ||
-        _status == MatchStatus.waiting_response || _status == MatchStatus.success) {
-      _setStatus(MatchStatus.cancelled);
+        _status == MatchStatus.waiting_response ||
+        _status == MatchStatus.success) {
+      _showMessage('상대가 매칭을 이탈했습니다.', isError: true);
+      _setStatus(MatchStatus.searching);
+      _channel.sink.add(json.encode({'action': 'join_queue'}));
       _matchedUserName = '';
     }
   }
 
   void _onMatchResponse(String result, String fromUser) {
     if (result == 'reject') {
-      _setStatus(MatchStatus.rejected);
+      _showMessage('상대가 매칭을 거절했습니다.', isError: true);
+      _setStatus(MatchStatus.searching);
+      _channel.sink.add(json.encode({'action': 'join_queue'}));
     }
   }
 
-  void _onMatchSuccess(String roomName) {
+  void _onMatchSuccess(String roomName) async {
     _setStatus(MatchStatus.success);
+
+    final storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'access_token') ?? '';
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => VoiceChatScreen(
+          roomName: roomName,
+          signalingUrl: 'ws://localhost:8000/ws/voicechat/$roomName/?token=$token',
+        ),
+      ),
+    );
+
+    _rejectMatch();
+
+    setState(() {
+      _status = MatchStatus.searching;
+      _matchedUserName = '';
+    });
   }
 
   void _startResponseTimer() {
@@ -119,14 +165,6 @@ class _MatchScreenState extends State<MatchScreen> {
     });
   }
 
-  void _startMatching() {
-    _channel.sink.add(json.encode({'action': 'join_queue'}));
-    setState(() {
-      _status = MatchStatus.searching;
-      _matchedUserName = '';
-    });
-  }
-
   void _acceptMatch() {
     _responseTimer?.cancel();
     _channel.sink.add(json.encode({
@@ -145,20 +183,163 @@ class _MatchScreenState extends State<MatchScreen> {
       'response': 'reject',
     }));
 
-    // 상태 변경 후 매칭 재시작 메시지 전송
     _setStatus(MatchStatus.searching);
     _matchedUserName = '';
 
-    // 다시 큐에 참여 요청
     _channel.sink.add(json.encode({'action': 'join_queue'}));
   }
 
+  void _showMessage(String message, {bool isError = false}) {
+    final color = isError ? Colors.red.shade600 : Colors.green.shade600;
+    final icon = isError ? Icons.error_outline : Icons.check_circle_outline;
 
-  @override
-  void dispose() {
-    _responseTimer?.cancel();
-    if (_channelInitialized) _channel.sink.close();
-    super.dispose();
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 100,
+        left: 20,
+        right: 20,
+        child: Material(
+          color: Colors.transparent,
+          child: AnimatedOpacity(
+            opacity: 1,
+            duration: const Duration(milliseconds: 300),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4)),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      message,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay?.insert(overlayEntry);
+
+    Future.delayed(const Duration(seconds: 2), () {
+      overlayEntry.remove();
+    });
+  }
+
+  Widget _buildSearchingContent() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox(
+          width: 60,
+          height: 60,
+          child: CircularProgressIndicator(strokeWidth: 6),
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          '매칭 상대를 찾는 중...',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: Colors.blueAccent),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMatchedContent() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.people_alt, size: 70, color: Colors.blue.shade700),
+        const SizedBox(height: 18),
+        Text(
+          '매칭 상대 발견: $_matchedUserName',
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 30),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton.icon(
+              onPressed: _acceptMatch,
+              icon: const Icon(Icons.check),
+              label: const Text('수락'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                textStyle: const TextStyle(fontSize: 18),
+                elevation: 5,
+              ),
+            ),
+            const SizedBox(width: 25),
+            ElevatedButton.icon(
+              onPressed: _rejectMatch,
+              icon: const Icon(Icons.close),
+              label: const Text('거절'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                textStyle: const TextStyle(fontSize: 18),
+                elevation: 5,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        const Text(
+          '6초 내 응답하지 않으면 자동으로 거절됩니다.',
+          style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWaitingResponseContent() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox(
+          width: 60,
+          height: 60,
+          child: CircularProgressIndicator(strokeWidth: 6),
+        ),
+        const SizedBox(height: 20),
+        const Text(
+          '상대방의 응답을 기다리는 중...',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.blueGrey),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSuccessContent() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.check_circle_outline, size: 80, color: Colors.green.shade600),
+          const SizedBox(height: 24),
+          const Text(
+            '매칭이 완료되었습니다!\n대화를 시작하세요.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -172,101 +353,48 @@ class _MatchScreenState extends State<MatchScreen> {
     Widget content;
 
     switch (_status) {
-      case MatchStatus.idle:
-        content = ElevatedButton(
-          onPressed: _startMatching,
-          child: const Text('매칭 시작'),
-        );
-        break;
-
       case MatchStatus.searching:
-        content = const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 20),
-            Text('매칭 상대를 찾는 중...'),
-          ],
-        );
+        content = _buildSearchingContent();
         break;
-
       case MatchStatus.matched:
-        content = Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('매칭 상대 발견: $_matchedUserName'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _acceptMatch,
-              child: const Text('수락'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                _rejectMatch();
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('거절'),
-            ),
-
-            const SizedBox(height: 20),
-            const Text('6초 내 응답하지 않으면 자동 거절 처리됩니다.'),
-          ],
-        );
+        content = _buildMatchedContent();
         break;
-
       case MatchStatus.waiting_response:
-        content = const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 20),
-            Text('상대방의 응답을 기다리는 중...'),
-          ],
-        );
+        content = _buildWaitingResponseContent();
         break;
-
       case MatchStatus.success:
-        content = const Center(
-          child: Text(
-            '매칭이 완료되었습니다! 대화를 시작하세요.',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        );
+        content = _buildSuccessContent();
         break;
-
       case MatchStatus.rejected:
-        content = const Center(
-          child: Text(
-            '상대가 매칭을 거절했습니다.',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
-          ),
-        );
-        Future.delayed(const Duration(seconds: 3), () {
-          if (_status == MatchStatus.rejected) {
-            _startMatching();
-          }
-        });
+      // rejected 상태는 실제 UI는 searching 화면에 메시지만 띄우고 있으므로
+      // _showMessage() 함수로 메시지 띄운 뒤 searching UI 출력
+        _showMessage('상대가 매칭을 거절했습니다.', isError: true);
+        _setStatus(MatchStatus.searching);
+        _channel.sink.add(json.encode({'action': 'join_queue'}));
+        content = _buildSearchingContent();
         break;
-
       case MatchStatus.cancelled:
-        content = const Center(
-          child: Text(
-            '상대가 매칭을 이탈했습니다.',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
-          ),
-        );
-        Future.delayed(const Duration(seconds: 3), () {
-          if (_status == MatchStatus.cancelled) {
-            _startMatching();
-          }
-        });
+        _showMessage('상대가 매칭을 이탈했습니다.', isError: true);
+        _setStatus(MatchStatus.searching);
+        _channel.sink.add(json.encode({'action': 'join_queue'}));
+        content = _buildSearchingContent();
         break;
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('매칭 화면')),
-      body: Center(child: content),
+      appBar: AppBar(
+        title: const Text('매칭 화면'),
+        centerTitle: true,
+        elevation: 3,
+      ),
+      body: Center(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 400),
+          child: content,
+          switchInCurve: Curves.easeIn,
+          switchOutCurve: Curves.easeOut,
+        ),
+      ),
     );
   }
 }

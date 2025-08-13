@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => SignUpScreen(),
         '/login': (context) => LoginScreen(),
         '/home': (context) => HomeScreen(),
-        '/match': (context) => MatchScreen(),
+        '/match': (context) => MatchScreen(initialStatus:  MatchStatus.searching,),
         '/match_settings': (context) => MatchSettingsScreen(),
       },
     );

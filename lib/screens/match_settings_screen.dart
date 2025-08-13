@@ -62,71 +62,127 @@ class _MatchSettingsScreenState extends State<MatchSettingsScreen> {
         DropdownMenuItem(value: 'female', child: Text('여성')),
       ],
       onChanged: (value) => setState(() => _preferredGender = value ?? 'any'),
-      decoration: const InputDecoration(
-        border: OutlineInputBorder(),
-        contentPadding: EdgeInsets.symmetric(horizontal: 12),
+      decoration: InputDecoration(
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        prefixIcon: const Icon(Icons.person_search_outlined),
       ),
+      style: const TextStyle(fontSize: 16),
+      dropdownColor: Colors.white,
+      elevation: 4,
     );
   }
 
   Widget _buildAgeRangeSlider() {
-    return RangeSlider(
-      values: _ageRange,
-      min: 18,
-      max: 60,
-      divisions: 42,
-      labels: RangeLabels(
-        _ageRange.start.round().toString(),
-        _ageRange.end.round().toString(),
-      ),
-      onChanged: (values) => setState(() => _ageRange = values),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: Colors.blueAccent,
+            inactiveTrackColor: Colors.blueAccent.withOpacity(0.3),
+            thumbColor: Colors.blueAccent,
+            overlayColor: Colors.blueAccent.withOpacity(0.2),
+            valueIndicatorColor: Colors.blueAccent,
+          ),
+          child: RangeSlider(
+            values: _ageRange,
+            min: 18,
+            max: 60,
+            divisions: 42,
+            labels: RangeLabels(
+              _ageRange.start.round().toString(),
+              _ageRange.end.round().toString(),
+            ),
+            onChanged: (values) => setState(() => _ageRange = values),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: Text(
+            '나이: ${_ageRange.start.round()} - ${_ageRange.end.round()} 세',
+            style: const TextStyle(fontSize: 14, color: Colors.black54),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildRadiusSlider() {
-    return Slider(
-      value: _radiusKm.toDouble(),
-      min: 1,
-      max: 50,
-      divisions: 49,
-      label: '$_radiusKm km',
-      onChanged: (value) => setState(() => _radiusKm = value.round()),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: Colors.blueAccent,
+            inactiveTrackColor: Colors.blueAccent.withOpacity(0.3),
+            thumbColor: Colors.blueAccent,
+            overlayColor: Colors.blueAccent.withOpacity(0.2),
+            valueIndicatorColor: Colors.blueAccent,
+          ),
+          child: Slider(
+            value: _radiusKm.toDouble(),
+            min: 1,
+            max: 50,
+            divisions: 49,
+            label: '$_radiusKm km',
+            onChanged: (value) => setState(() => _radiusKm = value.round()),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: Text(
+            '반경: $_radiusKm km',
+            style: const TextStyle(fontSize: 14, color: Colors.black54),
+          ),
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('매칭 설정')),
+      appBar: AppBar(
+        title: const Text('매칭 설정'),
+        centerTitle: true,
+        elevation: 1,
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: _isSaving
             ? const Center(child: CircularProgressIndicator())
             : Form(
           key: _formKey,
           child: ListView(
             children: [
-              const Text('선호 성별', style: TextStyle(fontSize: 18)),
-              const SizedBox(height: 8),
+              const Text('선호 성별', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 12),
               _buildPreferredGenderDropdown(),
-              const SizedBox(height: 20),
+              const SizedBox(height: 32),
 
-              const Text('선호 나이대', style: TextStyle(fontSize: 18)),
-              const SizedBox(height: 8),
+              const Text('선호 나이대', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 12),
               _buildAgeRangeSlider(),
-              const SizedBox(height: 20),
+              const SizedBox(height: 32),
 
-              const Text('반경 (킬로미터)', style: TextStyle(fontSize: 18)),
-              const SizedBox(height: 8),
+              const Text('반경 (킬로미터)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 12),
               _buildRadiusSlider(),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 40),
               ElevatedButton(
                 onPressed: _saveSettings,
                 style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 45),
+                  backgroundColor: Colors.blueAccent,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 4,
                 ),
-                child: const Text('저장'),
+                child: const Text(
+                  '저장',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
               ),
             ],
           ),

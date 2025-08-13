@@ -30,18 +30,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      if (kIsWeb) {
-        final bytes = await pickedFile.readAsBytes();
-        setState(() {
-          _webImageBytes = bytes;
-        });
-      } else {
-        setState(() {
-          _profileImage = io.File(pickedFile.path);
-        });
+    try {
+      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        if (kIsWeb) {
+          final bytes = await pickedFile.readAsBytes();
+          setState(() {
+            _webImageBytes = bytes;
+            _profileImage = null; // 혹시 몰라 초기화
+          });
+        } else {
+          setState(() {
+            _profileImage = io.File(pickedFile.path);
+            _webImageBytes = null; // 혹시 몰라 초기화
+          });
+        }
       }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('이미지 선택 오류: $e')),
+      );
     }
   }
 
@@ -55,9 +63,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     bool success = await _apiService.signup(
       username: _usernameController.text.trim(),
@@ -68,10 +74,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       profileImageFile: kIsWeb ? null : _profileImage,
     );
 
-
-    setState(() {
-      _isLoading = false;
-    });
+    setState(() => _isLoading = false);
 
     if (success) {
       if (!mounted) return;
@@ -87,23 +90,42 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
+  Widget _buildProfileImagePreview() {
+    if (_profileImage == null && _webImageBytes == null) {
+      return const Text(
+        '프로필 사진을 선택하세요',
+        style: TextStyle(color: Colors.grey),
+      );
+    } else if (kIsWeb && _webImageBytes != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(80),
+        child: Image.memory(_webImageBytes!, height: 160, width: 160, fit: BoxFit.cover),
+      );
+    } else if (_profileImage != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(80),
+        child: Image.file(_profileImage!, height: 160, width: 160, fit: BoxFit.cover),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
   @override
   Widget build(BuildContext context) {
     return MainLayout(
       title: '회원가입',
       appBarActions: [],
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Form(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Form(
             key: _formKey,
             child: Column(
               children: [
                 CustomTextField(
                   hint: '아이디',
                   controller: _usernameController,
-                  validator: (val) =>
-                  val == null || val.isEmpty ? '필수 입력' : null,
+                  validator: (val) => val == null || val.isEmpty ? '필수 입력' : null,
                   keyboardType: TextInputType.text,
                 ),
                 const SizedBox(height: 16),
@@ -111,8 +133,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   hint: '비밀번호',
                   controller: _passwordController,
                   obscure: true,
-                  validator: (val) =>
-                  val == null || val.length < 6 ? '6자 이상 입력' : null,
+                  validator: (val) => val == null || val.length < 6 ? '6자 이상 입력' : null,
                   keyboardType: TextInputType.text,
                 ),
                 const SizedBox(height: 16),
@@ -121,7 +142,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   controller: _ageController,
                   keyboardType: TextInputType.number,
                   validator: (val) {
-                    int? n = int.tryParse(val ?? '');
+                    final n = int.tryParse(val ?? '');
                     if (n == null || n < 1) return '유효한 나이 입력';
                     return null;
                   },
@@ -134,30 +155,40 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     DropdownMenuItem(child: Text('여성'), value: 'female'),
                   ],
                   onChanged: (val) => setState(() => gender = val ?? 'male'),
-                  decoration: const InputDecoration(labelText: '성별'),
-                ),
-                const SizedBox(height: 20),
-                if (_profileImage == null && _webImageBytes == null)
-                  const Text('프로필 사진을 선택하세요')
-                else if (kIsWeb && _webImageBytes != null)
-                  Image.memory(_webImageBytes!, height: 150)
-                else if (_profileImage != null)
-                    Image.file(_profileImage!, height: 150),
-                ElevatedButton(
-                  onPressed: _pickImage,
-                  child: const Text('사진 선택'),
+                  decoration: const InputDecoration(
+                    labelText: '성별',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  ),
                 ),
                 const SizedBox(height: 24),
+                _buildProfileImagePreview(),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: _pickImage,
+                  icon: const Icon(Icons.photo_library),
+                  label: const Text('사진 선택'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(140, 45),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 32),
                 _isLoading
                     ? const CircularProgressIndicator()
                     : PrimaryButton(
                   text: '회원가입',
                   onPressed: _submit,
+                  width: double.infinity,
+                  height: 50,
+                  borderRadius: 12,
+                  color: Colors.blueAccent,
+                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
