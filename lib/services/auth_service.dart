@@ -10,8 +10,18 @@ class ApiService {
   static const String baseUrl = 'http://localhost:8000/api/auth'; // 실제 IP로 변경 필요
   final FlutterSecureStorage storage = const FlutterSecureStorage();
 
+  String? passwordValidator(String? val) {
+    if (val == null || val.isEmpty) return '비밀번호를 입력하세요';
+    if (val.length < 8) return '비밀번호는 최소 8자 이상이어야 합니다';
+    if (!RegExp(r'[A-Z]').hasMatch(val)) return '대문자를 최소 1개 포함해야 합니다';
+    if (!RegExp(r'[a-z]').hasMatch(val)) return '소문자를 최소 1개 포함해야 합니다';
+    if (!RegExp(r'\d').hasMatch(val)) return '숫자를 최소 1개 포함해야 합니다';
+    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(val)) return '특수문자를 최소 1개 포함해야 합니다';
+    return null;
+  }
+
   /// 회원가입
-  Future<bool> signup({
+  Future<String> signup({
     required String username,
     required String password,
     required int age,
@@ -50,12 +60,25 @@ class ApiService {
     final respStr = await response.stream.bytesToString();
     print('Signup response status: ${response.statusCode}, body: $respStr');
 
-    return response.statusCode >= 200 && response.statusCode < 300;
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return "회원가입 성공!";
+    } else {
+      try {
+        final jsonBody = jsonDecode(respStr);
+        // 첫 번째 필드의 첫 번째 메시지 반환
+        final firstKey = jsonBody.keys.first;
+        final firstMessage = jsonBody[firstKey][0];
+        return firstMessage.toString();
+      } catch (e) {
+        return "회원가입 실패";
+      }
+    }
   }
 
 
-  /// 로그인 (토큰 저장)
-  Future<bool> login({
+
+  /// 로그인 (토큰 저장 + 서버 메시지 반환, UTF-8 안전)
+  Future<String> login({
     required String username,
     required String password,
   }) async {
@@ -67,26 +90,35 @@ class ApiService {
         body: jsonEncode({'username': username, 'password': password}),
       );
 
+      // UTF-8로 정확히 디코딩
+      final respStr = utf8.decode(response.bodyBytes);
+      print('서버 응답 JSON: $respStr');
+
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final data = jsonDecode(respStr);
         if (data['access'] != null && data['refresh'] != null) {
           await storage.write(key: 'access_token', value: data['access']);
           await storage.write(key: 'refresh_token', value: data['refresh']);
-          print('Login success, tokens saved');
-          return true;
+          return 'success';
         } else {
-          print('Login failed: Tokens missing in response');
-          return false;
+          return '로그인 실패: 토큰 누락';
         }
       } else {
-        print('Login failed: ${response.statusCode}, ${response.body}');
-        return false;
+        try {
+          final data = jsonDecode(respStr);
+          // detail이나 username, password 필드 메시지 우선 반환
+          if (data['detail'] != null) return data['detail'].toString();
+          if (data['username'] != null) return data['username'][0].toString();
+          if (data['password'] != null) return data['password'][0].toString();
+        } catch (_) {}
+        return '로그인 실패';
       }
     } catch (e) {
-      print('Login error: $e');
-      return false;
+      return '로그인 오류: $e';
     }
   }
+
+
 
   /// 로그아웃 (토큰 삭제 및 서버에 리프레시 토큰 전달)
   Future<bool> logout() async {

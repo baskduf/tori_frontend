@@ -71,23 +71,34 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
     setState(() => _isLoading = true);
 
-    bool success = await _apiService.login(
+    final result = await _apiService.login(
       username: _usernameController.text.trim(),
       password: _passwordController.text,
     );
 
     setState(() => _isLoading = false);
 
-    if (success) {
+    if (result == 'success') {
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
     } else {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('로그인 실패')),
+        SnackBar(
+          content: Text(
+            result,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: const Color(0xFF121212), // 블랙 계열 배경
+          behavior: SnackBarBehavior.floating, // 부유형 스타일
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          duration: const Duration(seconds: 3),
+        ),
       );
     }
   }
+
 
   BoxDecoration _neumorphicDecoration({bool isFocused = false}) {
     final baseColor = const Color(0xFF2E2E2E); // 다크 그레이 배경과 유사

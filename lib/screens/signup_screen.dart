@@ -101,8 +101,8 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         return;
       }
 
-      // 토큰을 포함하여 실제 회원가입 API 호출
-      bool success = await _apiService.signup(
+      // 서버 응답 문자열 반환하도록 signup 수정
+      String respStr = await _apiService.signup(
         username: _usernameController.text.trim(),
         password: _passwordController.text,
         age: int.tryParse(_ageController.text) ?? 18,
@@ -115,18 +115,27 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       _animController.stop();
       setState(() => _isLoading = false);
 
-      if (success) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('회원가입 성공! 로그인하세요')),
-        );
-        Navigator.pushReplacementNamed(context, '/login');
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('회원가입 실패')),
-        );
-      }
+      if (!mounted) return;
+
+      // 서버 응답을 팝업으로 표시
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('회원가입 결과'),
+          content: Text(respStr),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                if (respStr.contains('성공')) {
+                  Navigator.pushReplacementNamed(context, '/login');
+                }
+              },
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
     } catch (e) {
       _animController.stop();
       setState(() => _isLoading = false);
@@ -137,6 +146,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       );
     }
   }
+
 
   Widget _glassContainer({required Widget child, EdgeInsetsGeometry? padding}) {
     return ClipRRect(
@@ -256,7 +266,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                       hint: '비밀번호',
                       controller: _passwordController,
                       obscure: true,
-                      validator: (val) => val == null || val.length < 6 ? '6자 이상 입력' : null,
+                      validator: (val) => _apiService.passwordValidator(val),
                     ),
                   ),
                   const SizedBox(height: 16),
