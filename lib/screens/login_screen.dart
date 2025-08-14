@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../layouts/main_layout.dart';
 import '../services/auth_service.dart';
 import '../widgets/logo_widget.dart';
+import 'package:tori_frontend/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -71,9 +73,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
     setState(() => _isLoading = true);
 
-    final result = await _apiService.login(
-      username: _usernameController.text.trim(),
-      password: _passwordController.text,
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final result = await authProvider.login(
+      _usernameController.text.trim(),
+      _passwordController.text,
     );
 
     setState(() => _isLoading = false);
@@ -89,8 +92,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             result,
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
-          backgroundColor: const Color(0xFF121212), // 블랙 계열 배경
-          behavior: SnackBarBehavior.floating, // 부유형 스타일
+          backgroundColor: const Color(0xFF121212),
+          behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           duration: const Duration(seconds: 3),
@@ -98,6 +101,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       );
     }
   }
+
 
 
   BoxDecoration _neumorphicDecoration({bool isFocused = false}) {

@@ -9,6 +9,9 @@ import 'voice_chat_screen.dart';
 
 import '../widgets/searching_widget.dart';
 
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+
 enum MatchStatus {
   searching,
   matched,
@@ -62,8 +65,13 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
   }
 
   Future<void> _initWebSocket() async {
-    final storage = FlutterSecureStorage();
-    final token = await storage.read(key: 'access_token') ?? '';
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    final token = authProvider.accessToken ?? '';
+    if (token.isEmpty) {
+      print('❌ No token found in AuthProvider');
+      return;
+    }
 
     final uri = Uri.parse('ws://localhost:8000/ws/match/?token=$token');
     _channel = WebSocketChannel.connect(uri);
@@ -130,8 +138,8 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
   void _onMatchSuccess(String roomName) async {
     _setStatus(MatchStatus.success);
 
-    final storage = FlutterSecureStorage();
-    final token = await storage.read(key: 'access_token') ?? '';
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final token = authProvider.accessToken ?? '';
 
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -149,6 +157,7 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
       _matchedUserName = '';
     });
   }
+
 
   void _startResponseTimer() {
     _responseTimer?.cancel();
@@ -513,7 +522,6 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('매칭 화면'),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,

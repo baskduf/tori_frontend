@@ -8,6 +8,7 @@ import 'package:http_parser/http_parser.dart';
 
 class ApiService {
   static const String baseUrl = 'http://localhost:8000/api/auth'; // 실제 IP로 변경 필요
+  static const String tokenUrl = 'http://localhost:8000/token'; // 실제 IP로 변경 필요
   final FlutterSecureStorage storage = const FlutterSecureStorage();
 
   String? passwordValidator(String? val) {
@@ -75,7 +76,41 @@ class ApiService {
     }
   }
 
+  /// 토큰 갱신 API 호출
+  Future<bool> refreshAccessToken() async {
+    try {
+      final refresh = await storage.read(key: 'refresh_token');
+      if (refresh == null) {
+        print('Refresh failed: No refresh token');
+        return false;
+      }
 
+      final uri = Uri.parse('$tokenUrl/refresh/');
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh': refresh}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        if (data['access'] != null) {
+          await storage.write(key: 'access_token', value: data['access']);
+          print('Access token refreshed successfully');
+          return true;
+        } else {
+          print('Refresh failed: No access token in response');
+          return false;
+        }
+      } else {
+        print('Refresh failed: ${response.statusCode}, ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Refresh token error: $e');
+      return false;
+    }
+  }
 
   /// 로그인 (토큰 저장 + 서버 메시지 반환, UTF-8 안전)
   Future<String> login({
@@ -117,8 +152,6 @@ class ApiService {
       return '로그인 오류: $e';
     }
   }
-
-
 
   /// 로그아웃 (토큰 삭제 및 서버에 리프레시 토큰 전달)
   Future<bool> logout() async {
