@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '랜덤통화 매칭 앱',
+      title: 'TORI - 새로운 인연과의 만남',
       theme: appTheme,
       home: LoginScreen(),
       routes: {

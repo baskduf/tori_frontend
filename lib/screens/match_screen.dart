@@ -7,6 +7,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'voice_chat_screen.dart';
 
+import '../widgets/searching_widget.dart';
+
 enum MatchStatus {
   searching,
   matched,
@@ -263,38 +265,10 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
     );
   }
 
-
   Widget _buildSearchingContent() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _glassContainer(
-          width: 140,
-          height: 140,
-          child: const Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 6,
-              valueColor: AlwaysStoppedAnimation(Colors.white70),
-            ),
-          ),
-        ),
-        const SizedBox(height: 30),
-        const Text(
-          '매칭 상대를 찾는 중...',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-            color: Colors.white70,
-            shadows: [
-              Shadow(
-                color: Colors.black54,
-                offset: Offset(0, 1),
-                blurRadius: 2,
-              ),
-            ],
-          ),
-        ),
-      ],
+    return SearchingWidget(
+      glassContainerBuilder: _glassContainer,
+      rotationAnimation: _animationController,
     );
   }
 
