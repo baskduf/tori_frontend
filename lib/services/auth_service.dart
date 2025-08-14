@@ -16,6 +16,7 @@ class ApiService {
     required String password,
     required int age,
     required String gender,
+    String? recaptchaToken, // 추가
     io.File? profileImageFile,
     Uint8List? profileImageBytes,
   }) async {
@@ -27,30 +28,31 @@ class ApiService {
     request.fields['age'] = age.toString();
     request.fields['gender'] = gender;
 
+    if (recaptchaToken != null) {
+      request.fields['recaptcha_token'] = recaptchaToken;
+    }
+
     if (kIsWeb && profileImageBytes != null) {
       request.files.add(http.MultipartFile.fromBytes(
         'profile_image',
         profileImageBytes,
         filename: 'web_image.png',
-        contentType: MediaType('image', 'png'), // 필요 시 MIME 타입 변경 고려
+        contentType: MediaType('image', 'png'),
       ));
     } else if (profileImageFile != null) {
       request.files.add(await http.MultipartFile.fromPath(
         'profile_image',
         profileImageFile.path,
-        // contentType: MediaType('image', 'jpeg'), // 필요 시 확장자에 따라 지정
       ));
     }
 
     final response = await request.send();
-
-    // 응답 본문 읽기 (디버깅용)
     final respStr = await response.stream.bytesToString();
     print('Signup response status: ${response.statusCode}, body: $respStr');
 
-    // 성공 상태 코드 범위로 변경 (200~299)
     return response.statusCode >= 200 && response.statusCode < 300;
   }
+
 
   /// 로그인 (토큰 저장)
   Future<bool> login({

@@ -252,25 +252,17 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
           height: height,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.12),
+            color: Colors.transparent,  // 완전 투명
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.18),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.white.withOpacity(0.15),
-                blurRadius: 10,
-                spreadRadius: 2,
-              ),
-            ],
+            // border: 없앰
+            // boxShadow: 없앰
           ),
           child: child,
         ),
       ),
     );
   }
+
 
   Widget _buildSearchingContent() {
     return Column(
@@ -313,6 +305,7 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
         _glassContainer(
           width: 110,
           height: 110,
+
           child: (_matchedUserImageUrl != null && _matchedUserImageUrl!.isNotEmpty)
               ? CircleAvatar(
             radius: 40,

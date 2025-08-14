@@ -1,9 +1,10 @@
 import 'dart:ui';
 import 'dart:typed_data';
+import 'dart:io' as io;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io' as io;
+import 'package:recaptcha_v3/recaptcha_v3.dart';  // 변경된 import
 
 import '../layouts/main_layout.dart';
 import '../widgets/custom_textfield_widget.dart';
@@ -36,6 +37,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   void initState() {
     super.initState();
     _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    // recaptcha_v3에서는 main.dart에서 이미 초기화되므로 여기서 추가 설정 불필요
   }
 
   @override
@@ -73,7 +75,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     }
   }
 
-  void _submit() async {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate() ||
         (!kIsWeb && _profileImage == null) ||
         (kIsWeb && _webImageBytes == null)) {
@@ -86,28 +88,52 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     setState(() => _isLoading = true);
     _animController.repeat(reverse: true);
 
-    bool success = await _apiService.signup(
-      username: _usernameController.text.trim(),
-      password: _passwordController.text,
-      age: int.tryParse(_ageController.text) ?? 18,
-      gender: gender,
-      profileImageBytes: kIsWeb ? _webImageBytes : null,
-      profileImageFile: kIsWeb ? null : _profileImage,
-    );
+    try {
+      // recaptcha_v3 패키지 사용법
+      String? recaptchaToken = await Recaptcha.execute('signup');
 
-    _animController.stop();
-    setState(() => _isLoading = false);
+      if (recaptchaToken == null || recaptchaToken == 'null returned') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('캡차 인증 실패')),
+        );
+        setState(() => _isLoading = false);
+        _animController.stop();
+        return;
+      }
 
-    if (success) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('회원가입 성공! 로그인하세요')),
+      // 토큰을 포함하여 실제 회원가입 API 호출
+      bool success = await _apiService.signup(
+        username: _usernameController.text.trim(),
+        password: _passwordController.text,
+        age: int.tryParse(_ageController.text) ?? 18,
+        gender: gender,
+        profileImageBytes: kIsWeb ? _webImageBytes : null,
+        profileImageFile: kIsWeb ? null : _profileImage,
+        recaptchaToken: recaptchaToken,
       );
-      Navigator.pushReplacementNamed(context, '/login');
-    } else {
+
+      _animController.stop();
+      setState(() => _isLoading = false);
+
+      if (success) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('회원가입 성공! 로그인하세요')),
+        );
+        Navigator.pushReplacementNamed(context, '/login');
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('회원가입 실패')),
+        );
+      }
+    } catch (e) {
+      _animController.stop();
+      setState(() => _isLoading = false);
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('회원가입 실패')),
+        SnackBar(content: Text('오류가 발생했습니다: $e')),
       );
     }
   }
@@ -150,26 +176,12 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           fontSize: 18,
           fontWeight: FontWeight.bold,
           color: Colors.white,
-          shadows: [
-            Shadow(
-              color: Colors.white70,
-              offset: Offset(0, 1),
-              blurRadius: 3,
-            )
-          ],
         ),
       ),
       child: Text(
         text,
         style: const TextStyle(
           color: Colors.white,
-          shadows: [
-            Shadow(
-              color: Colors.white70,
-              offset: Offset(0, 1),
-              blurRadius: 3,
-            )
-          ],
         ),
       ),
     );
@@ -179,7 +191,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     if (_profileImage == null && _webImageBytes == null) {
       return const Text(
         '프로필 사진을 선택하세요',
-        style: TextStyle(color: Colors.white54, shadows: [Shadow(color: Colors.black54, offset: Offset(0, 1), blurRadius: 1)]),
+        style: TextStyle(color: Colors.white54),
       );
     } else if (kIsWeb && _webImageBytes != null) {
       return ClipRRect(
@@ -236,11 +248,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                       hint: '아이디',
                       controller: _usernameController,
                       validator: (val) => val == null || val.isEmpty ? '필수 입력' : null,
-                      keyboardType: TextInputType.text,
-                      textStyle: const TextStyle(color: Colors.white70, shadows: [
-                        Shadow(color: Colors.black54, offset: Offset(0, 1), blurRadius: 1)
-                      ]),
-                      cursorColor: Colors.white70,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -250,11 +257,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                       controller: _passwordController,
                       obscure: true,
                       validator: (val) => val == null || val.length < 6 ? '6자 이상 입력' : null,
-                      keyboardType: TextInputType.text,
-                      textStyle: const TextStyle(color: Colors.white70, shadows: [
-                        Shadow(color: Colors.black54, offset: Offset(0, 1), blurRadius: 1)
-                      ]),
-                      cursorColor: Colors.white70,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -268,10 +270,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                         if (n == null || n < 1) return '유효한 나이 입력';
                         return null;
                       },
-                      textStyle: const TextStyle(color: Colors.white70, shadows: [
-                        Shadow(color: Colors.black54, offset: Offset(0, 1), blurRadius: 1)
-                      ]),
-                      cursorColor: Colors.white70,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -279,17 +277,11 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                     child: DropdownButtonFormField<String>(
                       value: gender,
                       items: const [
-                        DropdownMenuItem(child: Text('남성', style: TextStyle(color: Colors.white70)), value: 'male'),
-                        DropdownMenuItem(child: Text('여성', style: TextStyle(color: Colors.white70)), value: 'female'),
+                        DropdownMenuItem(child: Text('남성'), value: 'male'),
+                        DropdownMenuItem(child: Text('여성'), value: 'female'),
                       ],
                       onChanged: (val) => setState(() => gender = val ?? 'male'),
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                      ),
-                      dropdownColor: Colors.grey[900],
-                      iconEnabledColor: Colors.white70,
-                      style: const TextStyle(color: Colors.white70),
+                      decoration: const InputDecoration(border: InputBorder.none),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -300,27 +292,18 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                         const SizedBox(height: 12),
                         ElevatedButton.icon(
                           onPressed: _pickImage,
-                          icon: const Icon(Icons.photo_library, color: Colors.white70, shadows: [
-                            Shadow(color: Colors.black54, offset: Offset(0, 1), blurRadius: 1)
-                          ]),
-                          label: const Text(
-                            '사진 선택',
-                            style: TextStyle(color: Colors.white70, shadows: [
-                              Shadow(color: Colors.black54, offset: Offset(0, 1), blurRadius: 1)
-                            ]),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white.withOpacity(0.15),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            minimumSize: const Size(140, 45),
-                            elevation: 6,
-                            shadowColor: Colors.black54,
-                          ),
+                          icon: const Icon(Icons.photo_library),
+                          label: const Text('사진 선택'),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 20),
+
+                  // reCAPTCHA 브랜딩 추가 (Google 정책상 필수)
+                  const RecaptchaBrand(),
+                  const SizedBox(height: 20),
+
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 400),
                     child: _isLoading
@@ -330,10 +313,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                           CurveTween(curve: Curves.easeInOut),
                         ),
                       ),
-                      child: const CircularProgressIndicator(
-                        strokeWidth: 5,
-                        valueColor: AlwaysStoppedAnimation(Colors.white70),
-                      ),
+                      child: const CircularProgressIndicator(color: Colors.white),
                     )
                         : _glassButton(text: '회원가입', onPressed: _submit),
                   ),
