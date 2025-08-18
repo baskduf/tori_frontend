@@ -1,8 +1,12 @@
 import 'dart:ui';
+// 웹 플랫폼에서만 임포트
+import 'dart:html' as html show window;
 
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../widgets/logo_widget.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -48,6 +52,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
       if (success) {
         if (!mounted) return;
+
+        // 방법 1: 완전한 페이지 새로고침과 함께 이동 (추천)
+        if (kIsWeb) {
+          html.window.location.href = '/login';
+          return; // 페이지가 새로고침되므로 아래 코드는 실행되지 않음
+        }
+
         Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       } else {
         if (!mounted) return;

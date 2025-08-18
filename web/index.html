@@ -19,6 +19,8 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
+  <meta name="google-signin-client_id" content="946190465802-87b8ua61njftieqp6q4lhkme255q2tqa.apps.googleusercontent.com">
+
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -29,9 +31,27 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/icon/app_icon.png">
 
+
   <title>tori_frontend</title>
   <link rel="manifest" href="manifest.json">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script>
+    function googleLoginPopup(clientId, redirectUri) {
+      google.accounts.oauth2.initCodeClient({
+        client_id: clientId,
+        scope: 'email profile openid',
+        ux_mode: 'popup',
+        redirect_uri: redirectUri,
+        callback: (response) => {
+          // 해시(#) 사용으로 쿼리 손실 방지
+          window.location.href = redirectUri + '#code=' + response.code;
+        }
+      }).requestCode();
+    }
+
+  </script>
 </head>
+
 <body>
   <script src="flutter_bootstrap.js" async></script>
 </body>

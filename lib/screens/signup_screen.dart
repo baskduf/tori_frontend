@@ -14,6 +14,7 @@ import '../services/auth_service.dart';
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
+
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
 }
@@ -22,7 +23,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   final _apiService = ApiService();
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
 
   String gender = 'male';
@@ -32,6 +32,21 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   final ImagePicker _picker = ImagePicker();
 
   late AnimationController _animController;
+
+  String name = '';
+  String profileUrl = '';
+  String tempToken = '';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null) {
+      name = args['name'] ?? '';
+      profileUrl = args['profileUrl'] ?? '';
+      tempToken = args['tempToken'] ?? '';
+    }
+  }
 
   @override
   void initState() {
@@ -44,7 +59,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   void dispose() {
     _animController.dispose();
     _usernameController.dispose();
-    _passwordController.dispose();
     _ageController.dispose();
     super.dispose();
   }
@@ -101,15 +115,15 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         return;
       }
 
-      // 서버 응답 문자열 반환하도록 signup 수정
+      // 기존 signup 호출 + tempToken 추가
       String respStr = await _apiService.signup(
         username: _usernameController.text.trim(),
-        password: _passwordController.text,
         age: int.tryParse(_ageController.text) ?? 18,
         gender: gender,
         profileImageBytes: kIsWeb ? _webImageBytes : null,
         profileImageFile: kIsWeb ? null : _profileImage,
         recaptchaToken: recaptchaToken,
+        tempToken: tempToken,
       );
 
       _animController.stop();
@@ -258,15 +272,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                       hint: '아이디',
                       controller: _usernameController,
                       validator: (val) => val == null || val.isEmpty ? '필수 입력' : null,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _glassContainer(
-                    child: CustomTextField(
-                      hint: '비밀번호',
-                      controller: _passwordController,
-                      obscure: true,
-                      validator: (val) => _apiService.passwordValidator(val),
                     ),
                   ),
                   const SizedBox(height: 16),
