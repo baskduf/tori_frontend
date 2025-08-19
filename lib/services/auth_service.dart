@@ -5,10 +5,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import '../api/api_constants.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:8000/api/auth';
-  static const String tokenUrl = 'http://localhost:8000/token';
+  // Auth 요청
+  final loginUrl = ApiConstants.authBase;
+  final tokenUrl = ApiConstants.tokenUrl;
 
   final FlutterSecureStorage storage = const FlutterSecureStorage();
 
@@ -33,7 +35,7 @@ class ApiService {
     io.File? profileImageFile,
     Uint8List? profileImageBytes,
   }) async {
-    final uri = Uri.parse('$baseUrl/signup/');
+    final uri = Uri.parse('$loginUrl/signup/');
     final request = http.MultipartRequest('POST', uri);
 
     request.fields.addAll({
@@ -105,36 +107,6 @@ class ApiService {
     }
   }
 
-  /// ===== 로그인 =====
-  Future<String> login({
-    required String username,
-    required String password,
-  }) async {
-    try {
-      final uri = Uri.parse('$baseUrl/login/');
-      final response = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'username': username, 'password': password}),
-      );
-
-      final respStr = utf8.decode(response.bodyBytes);
-      print('Login response: $respStr');
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(respStr);
-        if (data['access'] != null && data['refresh'] != null) {
-          await _saveTokens(data['access'], data['refresh']);
-          return 'success';
-        }
-      }
-
-      final data = jsonDecode(respStr);
-      return data['detail'] ?? "로그인 실패";
-    } catch (e) {
-      return '로그인 오류: $e';
-    }
-  }
 
   /// ===== 로그아웃 =====
   Future<bool> logout() async {
@@ -143,7 +115,7 @@ class ApiService {
     if (access == null || refresh == null) return false;
 
     try {
-      final uri = Uri.parse('$baseUrl/logout/');
+      final uri = Uri.parse('$loginUrl/logout/');
       await http.post(
         uri,
         headers: {
@@ -168,11 +140,11 @@ class ApiService {
     String? gender,
     io.File? profileImageFile,
   }) async {
-    final uri = Uri.parse('$baseUrl/oauth/$provider/code');
+    final uri = Uri.parse('$loginUrl/oauth/$provider/code');
     final request = http.MultipartRequest('POST', uri);
     request.fields['provider'] = provider;
     request.fields['code'] = code;
-    request.fields['redirect_uri'] = 'http://localhost:51577/api/auth/oauth/$provider/code';
+    request.fields['redirect_uri'] = ApiConstants.oauthRedirect(provider);
 
     if (username != null) request.fields['username'] = username;
     if (age != null) request.fields['age'] = age.toString();

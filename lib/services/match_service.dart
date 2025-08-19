@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../api/api_constants.dart';
 
 class MatchSetting {
   final int id;
@@ -40,7 +41,7 @@ class MatchSetting {
 }
 
 class MatchService {
-  static const String baseUrl = 'http://localhost:8000/api/settings/';
+  final settingsUrl = ApiConstants.settingsBase;
   final FlutterSecureStorage storage = FlutterSecureStorage();
 
   Future<String?> _getToken() async {
@@ -54,7 +55,7 @@ class MatchService {
   }) async {
     final token = await _getToken();
     final response = await http.put(
-      Uri.parse(baseUrl),
+      Uri.parse(settingsUrl),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -78,7 +79,7 @@ class MatchService {
   Future<MatchSetting?> fetchMatchSetting() async {
     final token = await _getToken();
     final response = await http.get(
-      Uri.parse(baseUrl),
+      Uri.parse(settingsUrl),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -96,7 +97,7 @@ class MatchService {
   Future<MatchSetting?> updateMatchSetting(MatchSetting setting) async {
     final token = await _getToken();
     final response = await http.put(
-      Uri.parse(baseUrl),
+      Uri.parse(settingsUrl),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',

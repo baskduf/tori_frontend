@@ -2,9 +2,10 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import '../api/api_constants.dart';
 
 class SocialAuthService {
-  static const String baseUrl = 'http://localhost:8000'; // Django 서버 URL
+  static final baseUrl = ApiConstants.baseServer;
 
   // 소셜 로그인 유저 존재 여부 확인
   static Future<bool> checkUserExists(String provider, String accessToken) async {

@@ -10,6 +10,7 @@ import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/match_screen.dart';
 import 'screens/match_settings_screen.dart';
+import 'screens/gem_store_screen.dart'; // ✅ 추가
 import 'themes/app_theme.dart';
 import 'package:recaptcha_v3/recaptcha_v3.dart';
 
@@ -65,7 +66,6 @@ class _MyAppState extends State<MyApp> {
         if (kDebugMode) print('쿼리에서 추출한 OAuth 코드: $_oauthCode');
       }
     }
-
   }
 
   @override
@@ -80,9 +80,9 @@ class _MyAppState extends State<MyApp> {
         '/signup': (_) => const SignUpScreen(),
         '/login': (_) => const LoginScreen(),
         '/home': (_) => const HomeScreen(),
-        '/match': (_) =>
-        const MatchScreen(initialStatus: MatchStatus.searching),
+        '/match': (_) => const MatchScreen(initialStatus: MatchStatus.searching),
         '/match_settings': (_) => const MatchSettingsScreen(),
+        '/gem_store': (_) => const GemStoreScreen(), // ✅ 추가
       },
     );
   }
@@ -100,5 +100,4 @@ class _MyAppState extends State<MyApp> {
     // 로그인 상태에 따라 초기 화면 선택
     return auth.accessToken == null ? const LoginScreen() : const HomeScreen();
   }
-
 }

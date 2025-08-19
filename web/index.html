@@ -36,6 +36,17 @@
   <link rel="manifest" href="manifest.json">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>
+    // 데모용 스텁: 실제로는 Google Pay 결제 성공 시 받은 토큰을 반환해야 함.
+  // Flutter에서 js.context.callMethod('startGooglePayPurchase', [productId])로 호출
+  function startGooglePayPurchase(productId) {
+  console.log('[Web] startGooglePayPurchase:', productId);
+  // TODO: Google Pay Web SDK 연동 후 실제 결제 토큰을 반환
+  const fakeToken = 'web_fake_token_' + productId + '_' + Date.now();
+  return fakeToken;
+  }
+  </script>
+  <script>
+
     function googleLoginPopup(clientId, redirectUri) {
       google.accounts.oauth2.initCodeClient({
         client_id: clientId,

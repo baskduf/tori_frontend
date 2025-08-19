@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:jwt_decoder/jwt_decoder.dart';
+import '../services/auth_service.dart';
 
 class AuthProvider with ChangeNotifier {
   final ApiService apiService;
@@ -23,6 +24,8 @@ class AuthProvider with ChangeNotifier {
     _accessToken = await _storage.read(key: 'access_token');
     _refreshToken = await _storage.read(key: 'refresh_token');
     notifyListeners();
+
+    if (_accessToken != null) scheduleTokenRefresh();
   }
 
   /// ===== 토큰 저장 =====
@@ -32,17 +35,6 @@ class AuthProvider with ChangeNotifier {
     await _storage.write(key: 'access_token', value: access);
     await _storage.write(key: 'refresh_token', value: refresh);
     notifyListeners();
-  }
-
-  /// ===== 일반 로그인 =====
-  Future<String> login(String username, String password) async {
-    final result = await apiService.login(username: username, password: password);
-    if (result == 'success') {
-      _accessToken = await apiService.getAccessToken();
-      _refreshToken = await apiService.getRefreshToken();
-      notifyListeners();
-    }
-    return result;
   }
 
   /// ===== 소셜 로그인 =====
@@ -66,11 +58,11 @@ class AuthProvider with ChangeNotifier {
 
       final status = data['statusCode'];
       if (status == 200 || status == 201) {
-        // access/refresh 저장
         final access = data['access'];
         final refresh = data['refresh'];
         if (access != null && refresh != null) {
           await _saveTokens(access, refresh);
+          scheduleTokenRefresh();
         }
         return status == 200 ? 'success' : 'signup_success';
       } else if (status == 202) {
@@ -85,25 +77,31 @@ class AuthProvider with ChangeNotifier {
 
   /// ===== 토큰 갱신 =====
   Future<bool> _refreshTokenIfNeeded() async {
-    if (_isRefreshing) return false;
-    if (_refreshToken == null) return false;
+    if (_isRefreshing || _refreshToken == null) return false;
+    if (_accessToken != null && !JwtDecoder.isExpired(_accessToken!)) return true;
 
     _isRefreshing = true;
-    final success = await apiService.refreshAccessToken();
-    _isRefreshing = false;
 
-    if (success) {
-      _accessToken = await apiService.getAccessToken();
-      notifyListeners();
-    } else {
-      _accessToken = null;
-      _refreshToken = null;
-      await _storage.delete(key: 'access_token');
-      await _storage.delete(key: 'refresh_token');
-      notifyListeners();
+    try {
+      // 기존 AuthService refreshAccessToken 사용
+      final success = await apiService.refreshAccessToken();
+
+      _isRefreshing = false;
+
+      if (success) {
+        _accessToken = await apiService.getAccessToken();
+        notifyListeners();
+        scheduleTokenRefresh();
+        return true;
+      } else {
+        await logout();
+        return false;
+      }
+    } catch (e) {
+      _isRefreshing = false;
+      await logout();
+      return false;
     }
-
-    return success;
   }
 
   /// ===== 인증 요청 래퍼 =====
@@ -112,6 +110,11 @@ class AuthProvider with ChangeNotifier {
     if (_accessToken == null) {
       _accessToken = await _storage.read(key: 'access_token');
       if (_accessToken == null) return null;
+    }
+
+    if (JwtDecoder.isExpired(_accessToken!)) {
+      final refreshed = await _refreshTokenIfNeeded();
+      if (!refreshed) return null;
     }
 
     try {
@@ -123,7 +126,7 @@ class AuthProvider with ChangeNotifier {
       }
       return response;
     } catch (e) {
-      print('Authenticated request error: $e');
+      debugPrint('Authenticated request error: $e');
       return null;
     }
   }
@@ -141,5 +144,23 @@ class AuthProvider with ChangeNotifier {
   /// ===== 외부에서 토큰 강제 세팅 =====
   Future<void> setToken(String access, String refresh) async {
     await _saveTokens(access, refresh);
+    scheduleTokenRefresh();
+  }
+
+  /// ===== 백그라운드 자동 갱신 스케줄 =====
+  void scheduleTokenRefresh() {
+    if (_accessToken == null) return;
+
+    final expirationDate = JwtDecoder.getExpirationDate(_accessToken!);
+    final now = DateTime.now();
+    final refreshBefore = expirationDate.subtract(const Duration(minutes: 1));
+
+    final duration = refreshBefore.difference(now);
+    if (duration.isNegative) return;
+
+    Future.delayed(duration, () async {
+      await _refreshTokenIfNeeded();
+      scheduleTokenRefresh(); // 재귀 예약
+    });
   }
 }

@@ -5,7 +5,6 @@ import 'dart:html' as html show window;
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../widgets/logo_widget.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class HomeScreen extends StatefulWidget {
@@ -105,10 +104,55 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('홈'),
+        title: const Text(' '),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
+          // 💎 젬 잔액 UI
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: Colors.white24, width: 1),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.diamond, color: Colors.amber, size: 20),
+                  const SizedBox(width: 4),
+                  const Text(
+                    "120", // ✅ 여기서 내 잔액 표시 (API 연동 필요)
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: () {
+                      // ✅ 결제 화면 이동 or 결제 요청 로직
+                      Navigator.pushNamed(context, '/gem_store');
+                    },
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.amber,
+                      ),
+                      padding: const EdgeInsets.all(2),
+                      child: const Icon(
+                        Icons.add,
+                        size: 18,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           IconButton(
             icon: const Icon(Icons.settings),
             tooltip: '매칭 설정',
@@ -125,6 +169,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ),
         ],
       ),
+
       backgroundColor: backgroundColor,
       body: Stack(
         fit: StackFit.expand,

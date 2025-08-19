@@ -9,7 +9,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:flutter/foundation.dart';
-
+import '../api/api_constants.dart';
 import 'dart:js' as js;
 
 class LoginScreen extends StatefulWidget {
@@ -25,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 // Google 로그인 버튼 클릭 시
   void _handleGoogleLoginWeb() {
     final clientId = '946190465802-87b8ua61njftieqp6q4lhkme255q2tqa.apps.googleusercontent.com';
-    final redirectUri = 'http://localhost:51577/api/auth/oauth/google/code';
+    final redirectUri = ApiConstants.googleRedirect;
 
     // GIS 팝업 실행
     js.context.callMethod('googleLoginPopup', [clientId, redirectUri]);
@@ -70,96 +70,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     _usernameFocus.dispose();
     _passwordFocus.dispose();
     super.dispose();
-  }
-
-  void _onTapDown(TapDownDetails details) {
-    _buttonController.reverse();
-  }
-
-  void _onTapUp(TapUpDetails details) {
-    _buttonController.forward();
-  }
-
-  void _onTapCancel() {
-    _buttonController.forward();
-  }
-
-
-
-
-
-  void _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final result = await authProvider.login(
-      _usernameController.text.trim(),
-      _passwordController.text,
-    );
-
-    setState(() => _isLoading = false);
-
-    if (result == 'success') {
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/home');
-    } else {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          backgroundColor: const Color(0xFF121212),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-  }
-
-  BoxDecoration _neumorphicDecoration({bool isFocused = false}) {
-    final baseColor = const Color(0xFF2E2E2E);
-    final shadowColorDark = Colors.black.withOpacity(0.8);
-    final shadowColorLight = Colors.grey.shade800;
-
-    return BoxDecoration(
-      color: baseColor,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: isFocused
-          ? [
-        BoxShadow(
-          color: Colors.blueAccent.withOpacity(0.7),
-          offset: const Offset(-5, -5),
-          blurRadius: 15,
-          spreadRadius: 1,
-        ),
-        BoxShadow(
-          color: shadowColorDark,
-          offset: const Offset(5, 5),
-          blurRadius: 15,
-          spreadRadius: 1,
-        ),
-      ]
-          : [
-        BoxShadow(
-          color: shadowColorLight,
-          offset: const Offset(-5, -5),
-          blurRadius: 10,
-          spreadRadius: 1,
-        ),
-        BoxShadow(
-          color: shadowColorDark,
-          offset: const Offset(5, 5),
-          blurRadius: 10,
-          spreadRadius: 1,
-        ),
-      ],
-    );
   }
 
   @override
@@ -239,11 +149,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       ),
                     ),
 
-
-
-
-
-                    // Apple도 동일하게 구현 가능
                   ],
                 ),
 
