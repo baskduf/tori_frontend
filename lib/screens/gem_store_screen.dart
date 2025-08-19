@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:in_app_purchase/in_app_purchase.dart' as iap;
 import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
+import '../api/api_client.dart';
+import '../main.dart';
 import '../providers/auth_provider.dart';
 import '../services/gem_api.dart';
 import 'dart:async';
@@ -51,10 +53,10 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
 // GemApi 생성
-    _api = GemApi(
-      ApiConstants.gemBase,
-      authProvider: authProvider, // 최신 토큰 사용
-    );
+    final apiClient = ApiClient(authProvider: authProvider, navigatorKey: navigatorKey);
+
+    _api = GemApi(apiClient: apiClient);
+
     await _refreshWallet();
     if (!kIsWeb) await _initMobileStore();
   }
@@ -122,11 +124,11 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
       final provider = kIsWeb ? 'google_pay' : 'play';
       final res = await _api.confirmPurchase(
           provider: provider, productId: productId, purchaseToken: purchaseToken, orderId: orderId);
-      if (res.statusCode == 200) {
+      if (res) {
         await _refreshWallet();
         _snack('결제 완료! 잔액이 갱신되었습니다.');
       } else {
-        _snack('서버 검증 실패: ${res.statusCode}');
+        _snack('서버 검증 실패');
       }
     } on DioException catch (e) {
       _snack('서버 검증 실패: ${e.response?.data ?? e.message}');

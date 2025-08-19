@@ -97,6 +97,20 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
     _channel.stream.listen(
           (message) {
         final data = json.decode(message);
+        switch (data['type']) {
+          case 'match_found':
+            _onMatchFound(data['partner'], data['partner_image_url']);
+            break;
+          case 'match_response':
+            _onMatchResponse(data['result'], data['from']);
+            break;
+          case 'match_success':
+            _onMatchSuccess(data['room']);
+            break;
+          case 'match_cancelled':
+            _onMatchCancelled(data['from']);
+            break;
+        }
         // 기존 메시지 핸들러 그대로
       },
       onError: (error) {

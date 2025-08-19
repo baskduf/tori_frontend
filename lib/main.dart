@@ -15,6 +15,8 @@ import 'screens/gem_store_screen.dart';
 import 'widgets/google_oauth_callback.dart';
 import 'themes/app_theme.dart';
 import 'package:recaptcha_v3/recaptcha_v3.dart';
+import 'api/api_constants.dart'; // ApiConstants impor
+import 'package:flutter_web_plugins/url_strategy.dart';// t
 
 // --------------------
 // 1️⃣ 전역 navigatorKey
@@ -103,13 +105,20 @@ class _MyAppState extends State<MyApp> {
 
   Widget _buildInitialScreen(AuthProvider auth) {
     final uri = Uri.parse(html.window.location.href);
-    final isOAuthCallback = uri.path == '/api/auth/oauth/google/code';
-
+    print(uri);
+    // --------------------
+    // OAuth 리디렉션 처리
+    // --------------------
+    final isOAuthCallback = uri.path == Uri.parse(ApiConstants.googleRedirect).path;
     if (!_handledOAuthCode && isOAuthCallback) {
       _handledOAuthCode = true;
       return OAuthCallbackScreen(code: _oauthCode);
     }
 
+    // --------------------
+    // 로그인 상태에 따른 초기 화면
+    // --------------------
     return auth.accessToken == null ? const LoginScreen() : const HomeScreen();
   }
+
 }

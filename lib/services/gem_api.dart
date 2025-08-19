@@ -1,45 +1,36 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import '../providers/auth_provider.dart'; // AuthProvider import
+import '../api/api_client.dart';
+import '../api/api_constants.dart';
 
 class GemApi {
-  final Dio _dio;
-  final AuthProvider authProvider;
+  final ApiClient apiClient;
 
-  GemApi(String baseUrl, {required this.authProvider})
-      : _dio = Dio(BaseOptions(baseUrl: baseUrl)) {
-    // 요청 인터셉터 추가
-    _dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) {
-          final token = authProvider.accessToken;
-          if (token != null) {
-            options.headers['Authorization'] = 'Bearer $token';
-          }
-          return handler.next(options);
-        },
-      ),
-    );
-  }
+  GemApi({required this.apiClient});
 
   Future<int> fetchWallet() async {
-    final res = await _dio.get('/wallet/');
-    return res.data['balance'] as int;
+    final response = await apiClient.get(ApiConstants.gemBase + 'wallet/');
+    return json.decode(response.body)['balance'] as int;
   }
 
-  Future<Response> confirmPurchase({
-    required String provider, // 'play' | 'google_pay'
+  Future<bool> confirmPurchase({
+    required String provider,
     required String productId,
     required String purchaseToken,
     required String orderId,
-  }) {
-    return _dio.post(
-      '/purchase/confirm/',
-      data: {
+  }) async {
+    final response = await apiClient.post(
+      ApiConstants.gemBase + 'purchase/confirm/',
+      body: {
         'provider': provider,
         'product_id': productId,
         'purchase_token': purchaseToken,
         'order_id': orderId,
       },
     );
+    return response.statusCode == 200;
   }
+
 }

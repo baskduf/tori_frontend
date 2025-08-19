@@ -7,10 +7,11 @@ import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
-
-import 'package:flutter/foundation.dart';
 import '../api/api_constants.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:js' as js;
+
+import 'dart:html' as html;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -29,6 +30,21 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
     // GIS 팝업 실행
     js.context.callMethod('googleLoginPopup', [clientId, redirectUri]);
+  }
+
+
+  void _googleLoginRedirect() {
+    final clientId = '946190465802-87b8ua61njftieqp6q4lhkme255q2tqa.apps.googleusercontent.com';
+    final redirectUri = ApiConstants.googleRedirect;
+
+    final authUrl =
+        'https://accounts.google.com/o/oauth2/v2/auth'
+        '?client_id=$clientId'
+        '&redirect_uri=$redirectUri'
+        '&response_type=code'
+        '&scope=email%20profile%20openid';
+
+    html.window.location.href = authUrl; // 리디렉션
   }
 
 
@@ -106,7 +122,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         try {
                           if (kIsWeb) {
                             // Flutter Web: GIS 팝업 로그인
-                            _handleGoogleLoginWeb();
+                            _googleLoginRedirect();
                           } else {
                             // 모바일용 google_sign_in 제거
                             // 이제 Web에서만 GIS 팝업 사용

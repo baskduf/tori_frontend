@@ -47,18 +47,20 @@
   </script>
   <script>
 
-    function googleLoginPopup(clientId, redirectUri) {
-      google.accounts.oauth2.initCodeClient({
-        client_id: clientId,
-        scope: 'email profile openid',
-        ux_mode: 'popup',
-        redirect_uri: redirectUri,
-        callback: (response) => {
-          // 해시(#) 사용으로 쿼리 손실 방지
-          window.location.href = redirectUri + '#code=' + response.code;
-        }
-      }).requestCode();
-    }
+<!--    function googleLoginPopup(clientId, redirectUri) {-->
+<!--      google.accounts.oauth2.initCodeClient({-->
+<!--        client_id: clientId,-->
+<!--        scope: 'email profile openid',-->
+<!--        ux_mode: 'popup',-->
+<!--        redirect_uri: redirectUri,-->
+<!--        callback: (response) => {-->
+<!--          // 해시(#) 사용으로 쿼리 손실 방지-->
+<!--          window.location.href = redirectUri + '#code=' + response.code;-->
+<!--        }-->
+<!--      }).requestCode();-->
+<!--    }-->
+
+
 
   </script>
 </head>

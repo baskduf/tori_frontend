@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import '../api/api_client.dart';
+import '../main.dart';
 import '../services/signaling_service.dart';
 import '../screens/match_screen.dart';
 import '../widgets/sound_bar_widget.dart';
@@ -31,17 +33,17 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
   void initState() {
     super.initState();
 
-    // 상태 애니메이션 (FadeTransition 용)
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
 
-    // 가상 볼륨 애니메이션 (0~1 값 반복)
     _volumeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
+
+    final apiClient = ApiClient(authProvider: authProvider, navigatorKey: navigatorKey);
 
     _signaling = SignalingService(
       roomName: widget.roomName,
@@ -54,9 +56,13 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       onStatusChanged: (status) {
         if (status == 'cancelled' && mounted) {
           Navigator.of(context).pop();
+        } else if (status == 'success') {
+          _goToMatchScreen();
         }
       },
+      apiClient: apiClient, // <-- 만약 생성자가 apiClient를 요구하면 추가
     );
+
 
     _signaling!.connect().then((_) {
       _signaling?.makeCall();
@@ -85,18 +91,9 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(
-          icon,
-          size: 28,
-          color: color.withOpacity(0.85),
-          shadows: const [
-            Shadow(
-              color: Colors.black45,
-              offset: Offset(0, 1),
-              blurRadius: 3,
-            ),
-          ],
-        ),
+        Icon(icon, size: 28, color: color.withOpacity(0.85), shadows: const [
+          Shadow(color: Colors.black45, offset: Offset(0, 1), blurRadius: 3),
+        ]),
         const SizedBox(width: 12),
         Text(
           label,
@@ -105,11 +102,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
             fontWeight: FontWeight.w600,
             color: color.withOpacity(0.9),
             shadows: const [
-              Shadow(
-                color: Colors.black45,
-                offset: Offset(0, 1),
-                blurRadius: 3,
-              ),
+              Shadow(color: Colors.black45, offset: Offset(0, 1), blurRadius: 3),
             ],
           ),
         ),
@@ -130,11 +123,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
         iconTheme: IconThemeData(
           color: Colors.white.withOpacity(0.7),
           shadows: const [
-            Shadow(
-              color: Colors.black54,
-              offset: Offset(0, 1),
-              blurRadius: 4,
-            ),
+            Shadow(color: Colors.black54, offset: Offset(0, 1), blurRadius: 4),
           ],
         ),
         title: Text(
@@ -142,11 +131,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
           style: TextStyle(
             color: Colors.white.withOpacity(0.7),
             shadows: const [
-              Shadow(
-                color: Colors.black54,
-                offset: Offset(0, 1),
-                blurRadius: 4,
-              ),
+              Shadow(color: Colors.black54, offset: Offset(0, 1), blurRadius: 4),
             ],
           ),
         ),
@@ -161,18 +146,14 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFF1A1A1A),
-              Color(0xFF2E2E2E),
-            ],
+            colors: [Color(0xFF1A1A1A), Color(0xFF2E2E2E)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
         child: GestureDetector(
           onHorizontalDragEnd: (details) {
-            if (details.primaryVelocity != null &&
-                details.primaryVelocity! > 0) {
+            if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
               _goToMatchScreen();
             }
           },
@@ -183,17 +164,12 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
                 filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 500),
-                  padding:
-                  const EdgeInsets.symmetric(vertical: 40, horizontal: 30),
-                  margin:
-                  const EdgeInsets.symmetric(horizontal: 30, vertical: 50),
+                  padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 30),
+                  margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 50),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.2),
-                      width: 1,
-                    ),
+                    border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.25),
@@ -212,41 +188,25 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
                           fontWeight: FontWeight.bold,
                           color: Colors.white.withOpacity(0.9),
                           shadows: const [
-                            Shadow(
-                              color: Colors.black54,
-                              offset: Offset(0, 1),
-                              blurRadius: 4,
-                            ),
+                            Shadow(color: Colors.black54, offset: Offset(0, 1), blurRadius: 4),
                           ],
                         ),
                       ),
                       const SizedBox(height: 40),
-
-                      // 로컬 오디오 상태 텍스트
                       _buildStatusRow(
                         Icons.mic,
-                        localAudioActive
-                            ? '로컬 오디오 활성화됨'
-                            : '로컬 오디오 대기 중...',
-                        localAudioActive
-                            ? Colors.lightGreenAccent.shade400
-                            : Colors.white70,
+                        localAudioActive ? '로컬 오디오 활성화됨' : '로컬 오디오 대기 중...',
+                        localAudioActive ? Colors.lightGreenAccent.shade400 : Colors.white70,
                       ),
                       const SizedBox(height: 8),
-
-                      // 내 목소리 볼륨 바 (가상 애니메이션)
                       AnimatedBuilder(
                         animation: _volumeController,
                         builder: (_, __) {
-                          double level =
-                          localAudioActive ? _volumeController.value : 0.0;
+                          double level = localAudioActive ? _volumeController.value : 0.0;
                           return SoundLevelBar(level: level);
                         },
                       ),
-
                       const SizedBox(height: 30),
-
-                      // 상대방 오디오 상태 텍스트 (FadeTransition 애니메이션)
                       FadeTransition(
                         opacity: _animationController.drive(
                           Tween(begin: 0.5, end: 1.0).chain(
@@ -255,29 +215,19 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
                         ),
                         child: _buildStatusRow(
                           Icons.headset,
-                          remoteAudioActive
-                              ? '상대방 오디오 수신 중'
-                              : '상대방 오디오 대기 중...',
-                          remoteAudioActive
-                              ? Colors.lightGreenAccent.shade400
-                              : Colors.white70,
+                          remoteAudioActive ? '상대방 오디오 수신 중' : '상대방 오디오 대기 중...',
+                          remoteAudioActive ? Colors.lightGreenAccent.shade400 : Colors.white70,
                         ),
                       ),
-
                       const SizedBox(height: 8),
-
-                      // 상대방 목소리 볼륨 바 (가상 애니메이션 반대 방향)
                       AnimatedBuilder(
                         animation: _volumeController,
                         builder: (_, __) {
-                          double level =
-                          remoteAudioActive ? 1 - _volumeController.value : 0.0;
+                          double level = remoteAudioActive ? 1 - _volumeController.value : 0.0;
                           return SoundLevelBar(level: level);
                         },
                       ),
-
                       const SizedBox(height: 50),
-
                       ElevatedButton.icon(
                         onPressed: () {
                           _signaling?.dispose();
@@ -287,24 +237,17 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
                         label: const Text(
                           '통화 종료',
                           style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black87,
-                                  offset: Offset(0, 2),
-                                  blurRadius: 6,
-                                )
-                              ]),
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            shadows: [
+                              Shadow(color: Colors.black87, offset: Offset(0, 2), blurRadius: 6),
+                            ],
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                          Colors.redAccent.withOpacity(0.85),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 30, vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
-                          ),
+                          backgroundColor: Colors.redAccent.withOpacity(0.85),
+                          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                           elevation: 10,
                           shadowColor: Colors.redAccent.shade700,
                         ),

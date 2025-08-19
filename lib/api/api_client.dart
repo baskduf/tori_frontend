@@ -50,6 +50,23 @@ class ApiClient {
     return token;
   }
 
+  /// 토큰 체크/갱신 (Public)
+  Future<String?> getValidToken() async {
+    String? token = authProvider.accessToken;
+
+    // 토큰 없거나 만료시 refresh 처리
+    if (token == null || token.isEmpty) {
+      final refreshed = await authProvider.refreshTokenIfNeeded();
+      if (!refreshed) {
+        _handleUnauthorized();
+        return null;
+      }
+      token = authProvider.accessToken;
+    }
+
+    return token;
+  }
+
   /// 401 처리
   http.Response _handleResponse(http.Response response) {
     if (response.statusCode == 401) {
