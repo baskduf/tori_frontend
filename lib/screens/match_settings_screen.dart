@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/match_service.dart';
 
 class MatchSettingsScreen extends StatefulWidget {
@@ -12,7 +13,7 @@ class MatchSettingsScreen extends StatefulWidget {
 
 class _MatchSettingsScreenState extends State<MatchSettingsScreen>
     with SingleTickerProviderStateMixin {
-  final MatchService _matchService = MatchService();
+  late final MatchService _matchService;
   final _formKey = GlobalKey<FormState>();
 
   String _preferredGender = 'any';
@@ -26,12 +27,13 @@ class _MatchSettingsScreenState extends State<MatchSettingsScreen>
   @override
   void initState() {
     super.initState();
+
+    _matchService = Provider.of<MatchService>(context, listen: false);
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
   }
-
   @override
   void dispose() {
     _animController.dispose();

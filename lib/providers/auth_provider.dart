@@ -104,6 +104,11 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // public wrapper 추가
+  Future<bool> refreshTokenIfNeeded() async {
+    return await _refreshTokenIfNeeded();
+  }
+
   /// ===== 인증 요청 래퍼 =====
   Future<http.Response?> authenticatedRequest(
       Future<http.Response> Function(String accessToken) requestFn) async {

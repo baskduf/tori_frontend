@@ -8,11 +8,16 @@ class ApiConstants {
   static const String googleRedirect = 'http://localhost:51577/api/auth/oauth/google/code';
 
   // Settings
-  static const String settingsBase = '$baseServer/api/settings';
+  static const String settingsBase = '$baseServer/api/settings/';
 
   // Gem
-  static const String gemBase = '$baseServer/api/gem';
+  static const String gemBase = '$baseServer/api/gem/';
 
   // OAuth provider redirect (동적 사용 가능)
   static String oauthRedirect(String provider) => 'http://localhost:51577/api/auth/oauth/$provider/code';
+
+  // WebSocket
+  static String matchWs(String token) => 'ws://localhost:8000/ws/match/?token=$token';
+  static String voiceChatWs(String roomName, String token) =>
+      'ws://localhost:8000/ws/voicechat/$roomName/?token=$token';
 }

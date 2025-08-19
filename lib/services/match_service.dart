@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'package:flutter/src/widgets/framework.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../api/api_client.dart';
 import '../api/api_constants.dart';
 
 class MatchSetting {
@@ -44,6 +46,11 @@ class MatchService {
   final settingsUrl = ApiConstants.settingsBase;
   final FlutterSecureStorage storage = FlutterSecureStorage();
 
+
+  final ApiClient apiClient;
+
+  MatchService({required this.apiClient});
+
   Future<String?> _getToken() async {
     return await storage.read(key: 'access_token');
   }
@@ -77,15 +84,7 @@ class MatchService {
 
 
   Future<MatchSetting?> fetchMatchSetting() async {
-    final token = await _getToken();
-    final response = await http.get(
-      Uri.parse(settingsUrl),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
-
+    final response = await apiClient.get(ApiConstants.settingsBase);
     if (response.statusCode == 200) {
       final jsonData = json.decode(response.body);
       return MatchSetting.fromJson(jsonData);
@@ -95,16 +94,10 @@ class MatchService {
   }
 
   Future<MatchSetting?> updateMatchSetting(MatchSetting setting) async {
-    final token = await _getToken();
-    final response = await http.put(
-      Uri.parse(settingsUrl),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-      body: json.encode(setting.toJson()),
+    final response = await apiClient.post(
+      ApiConstants.settingsBase,
+      body: setting.toJson(),
     );
-
     if (response.statusCode == 200) {
       final jsonData = json.decode(response.body);
       return MatchSetting.fromJson(jsonData);
@@ -112,4 +105,5 @@ class MatchService {
       throw Exception('Failed to update match settings');
     }
   }
+
 }
