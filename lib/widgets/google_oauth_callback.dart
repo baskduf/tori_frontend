@@ -102,19 +102,67 @@ class _OAuthCallbackScreenState extends State<OAuthCallbackScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('OAuth 콜백')),
+      backgroundColor: const Color(0xFF121212),
       body: Center(
-        child: _isLoading
-            ? Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(_status, style: const TextStyle(fontSize: 16)),
-          ],
-        )
-            : Text(_status, style: const TextStyle(fontSize: 16, color: Colors.red)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withOpacity(0.15)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              )
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: _isLoading
+                    ? const Icon(Icons.lock_open_rounded,
+                    size: 48, color: Colors.amber)
+                    : Icon(
+                  _status.contains("성공")
+                      ? Icons.check_circle_rounded
+                      : Icons.error_rounded,
+                  size: 48,
+                  color: _status.contains("성공")
+                      ? Colors.greenAccent
+                      : Colors.redAccent,
+                ),
+              ),
+              const SizedBox(height: 16),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: _isLoading
+                    ? const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation(Colors.amber))
+                    : const SizedBox.shrink(),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _status,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: _status.contains("성공")
+                      ? Colors.greenAccent
+                      : _isLoading
+                      ? Colors.white70
+                      : Colors.redAccent,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
+
 }

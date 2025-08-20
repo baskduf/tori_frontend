@@ -16,15 +16,16 @@ class _LogoState extends State<Logo> with SingleTickerProviderStateMixin {
     super.initState();
 
     _controller = AnimationController(
-      duration: const Duration(seconds: 6),
+      duration: const Duration(seconds: 3), // 한 사이클 시간
       vsync: this,
     );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _fadeAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
-    _controller.forward(); // 시작하자마자 페이드 아웃 시작
+    // 반복하면서 뒤집기
+    _controller.repeat(reverse: true);
   }
 
   @override
@@ -59,7 +60,6 @@ class _LogoState extends State<Logo> with SingleTickerProviderStateMixin {
                   ],
                 ),
               ),
-
               Icon(Icons.phone, size: 40, color: Colors.white.withOpacity(0.85)),
             ],
           ),

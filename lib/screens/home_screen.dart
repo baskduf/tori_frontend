@@ -3,7 +3,12 @@ import 'dart:ui';
 import 'dart:html' as html show window;
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../api/api_client.dart';
+import '../main.dart';
+import '../providers/auth_provider.dart';
 import '../services/auth_service.dart';
+import '../services/gem_api.dart';
 import '../widgets/logo_widget.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
@@ -17,6 +22,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   final ApiService apiService = ApiService();
   bool _isLoggingOut = false;
+  late GemApi _api;
+  int? _balance; // 젬 잔액
+
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -24,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
+    _bootstrap(); // 초기화 시 잔액 가져오기
 
     _pulseController = AnimationController(
       vsync: this,
@@ -97,6 +106,43 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
+  Future<void> _bootstrap() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final token = auth.accessToken;
+    if (token == null) {
+      _snack('로그인 후 이용해주세요.');
+      return;
+    }
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final apiClient = ApiClient(authProvider: authProvider, navigatorKey: navigatorKey);
+    _api = GemApi(apiClient: apiClient);
+    try {
+      final bal = await _api.fetchWallet(); // 서버에서 현재 젬 잔액 가져오기
+      setState(() => _balance = bal);      // 가져온 잔액을 화면에 반영
+    } catch (e) {
+      _snack('잔액 조회 실패: 세션이 만료되었습니다.');          // 에러 발생 시 사용자에게 안내
+    }
+    // if (!kIsWeb) await _initMobileStore();
+  }
+
+  void _snack(String message, {SnackBarAction? action}) {
+    if (!mounted) return; // 비동기 이후 안전 가드
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,   // AppBar/SafeArea와 겹침 방지
+        duration: const Duration(seconds: 3),
+        action: action,
+        margin: const EdgeInsets.all(12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     const backgroundColor = Color(0xFF121212);
@@ -122,37 +168,29 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 children: [
                   const Icon(Icons.diamond, color: Colors.amber, size: 20),
                   const SizedBox(width: 4),
-                  const Text(
-                    "120", // ✅ 여기서 내 잔액 표시 (API 연동 필요)
-                    style: TextStyle(
+                  Text(
+                    "${_balance ?? 0}",
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(width: 6),
                   GestureDetector(
-                    onTap: () {
-                      // ✅ 결제 화면 이동 or 결제 요청 로직
-                      Navigator.pushNamed(context, '/gem_store');
-                    },
+                    onTap: () => Navigator.pushNamed(context, '/gem_store'),
                     child: Container(
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.amber,
                       ),
                       padding: const EdgeInsets.all(2),
-                      child: const Icon(
-                        Icons.add,
-                        size: 18,
-                        color: Colors.black87,
-                      ),
+                      child: const Icon(Icons.add, size: 18, color: Colors.black87),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-
           IconButton(
             icon: const Icon(Icons.settings),
             tooltip: '매칭 설정',
@@ -169,7 +207,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ),
         ],
       ),
-
       backgroundColor: backgroundColor,
       body: Stack(
         fit: StackFit.expand,
@@ -185,9 +222,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
           ),
 
-          // Glassmorphism + Pulse 애니메이션 버튼 (중앙 하단 위치에 배치)
+          // Glassmorphism + Pulse 애니메이션 버튼
           Align(
-            alignment: Alignment(0, 0.6), // 화면 아래쪽 중앙 (조절 가능)
+            alignment: const Alignment(0, 0.6),
             child: ScaleTransition(
               scale: _pulseAnimation,
               child: ClipRRect(
@@ -287,13 +324,49 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
           ),
 
-          // LogoWidget - 화면 상단 중앙에 배치
+          // LogoWidget
           Align(
-            alignment: const Alignment(0, -0.8), // 위쪽 중앙 (필요시 조절)
+            alignment: const Alignment(0, -0.5),
             child: const Logo(),
+          ),
+
+          // ⚙ 매칭 설정 말풍선 (AppBar 밖에서 표시)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 50,
+            right: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Text(
+                    "조건에 맞는 매칭을 설정하세요 ",
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                  Text("😊", style: TextStyle(fontSize: 14)),
+                ],
+              ),
+            ),
           ),
         ],
       ),
     );
   }
+
+
 }

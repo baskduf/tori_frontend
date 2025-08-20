@@ -212,7 +212,7 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          backgroundColor: Colors.blueGrey.shade800,
+                          backgroundColor: Colors.blueGrey.shade700,
                           elevation: 4,
                         ),
                         child: Column(
