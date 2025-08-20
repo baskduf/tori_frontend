@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import '../layouts/main_layout.dart';
+import '../main.dart';
 import '../services/auth_service.dart';
 import '../widgets/logo_widget.dart';
 import 'package:tori_frontend/providers/auth_provider.dart';
@@ -13,6 +16,7 @@ import 'package:flutter/foundation.dart';
 // import 'dart:js' as js;
 import 'package:url_launcher/url_launcher.dart';
 // import 'dart:html' as html;
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -127,8 +131,32 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             // Flutter Web: GIS 팝업 로그인
                             _googleLoginRedirect();
                           } else {
-                            // 모바일용 google_sign_in 제거
-                            // 이제 Web에서만 GIS 팝업 사용
+                            // 모바일용 Google Sign-In
+                            final result = await authProvider.loginWithGoogleMobile();
+
+                            if (result == 'success') {
+                              if (!mounted) return;
+                              Navigator.pushReplacementNamed(context, '/home');
+                            } else if (result.startsWith('signup_required:')) {
+                              final payloadJson = result.substring('signup_required:'.length);
+                              final payload = json.decode(payloadJson);
+
+                              if (!mounted) return;
+                              Navigator.pushReplacementNamed(
+                                context,
+                                '/signup',
+                                arguments: {
+                                  'name': payload['name'] ?? '',
+                                  'profileUrl': payload['profile_url'] ?? '',
+                                  'tempToken': payload['temp_token'],
+                                },
+                              );
+                            } else {
+                              // 실패 처리
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('로그인 실패: $result')),
+                              );
+                            }
                           }
                         } catch (e) {
                           ScaffoldMessenger.of(context).showSnackBar(

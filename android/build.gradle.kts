@@ -1,3 +1,9 @@
+plugins {
+    // 기존 플러그인들
+
+    // Google Services Gradle plugin version 명시
+}
+
 allprojects {
     repositories {
         google()

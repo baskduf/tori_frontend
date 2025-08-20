@@ -4,6 +4,9 @@ plugins {
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+    // Add the dependencies for any other desired Firebase products
+    // https://firebase.google.com/docs/android/setup#available-libraries
+
 
 android {
     namespace = "com.example.tori_frontend"
@@ -39,6 +42,17 @@ android {
     }
 }
 
+dependencies {
+    // Firebase BoM 사용 (버전 관리 자동)
+    implementation(platform("com.google.firebase:firebase-bom:34.1.0"))
+
+    // 사용할 Firebase 제품 추가
+    implementation("com.google.firebase:firebase-analytics")
+
+    // 필요하면 다른 Firebase SDK도 추가 가능
+    // implementation("com.google.firebase:firebase-auth")
+    // implementation("com.google.firebase:firebase-firestore")
+}
 flutter {
     source = "../.."
 }

@@ -5,8 +5,17 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:jwt_decoder/jwt_decoder.dart';
 import '../services/auth_service.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthProvider with ChangeNotifier {
+  // -------------------------
+  // 상태 변수 / 객체 정의
+  // -------------------------
+  String _status = ''; // 로그인 상태 표시
+  bool _isLoading = false; // 로딩 표시
+  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile'], clientId: '946190465802-m9a8phg2ggm3rveejcn0aao8uqa3ogje.apps.googleusercontent.com'); // 모바일 GSI
+
+
   final ApiService apiService;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
@@ -74,6 +83,62 @@ class AuthProvider with ChangeNotifier {
       return 'OAuth 오류: $e';
     }
   }
+
+  // 모바일용 social login (idToken 기반)
+  Future<Map<String, dynamic>> socialLoginMobile({
+    required String provider,
+    required String idToken,
+  }) async {
+    final response = await http.post(
+      Uri.parse('http://localhost:8000/api/auth/mobile/google-login//'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'id_token': idToken}),
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 500) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('서버 로그인 실패: ${response.body}');
+    }
+  }
+
+  Future<String> loginWithGoogleMobile() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final account = await _googleSignIn.signIn();
+      if (account == null) return '사용자가 취소함';
+
+      final auth = await account.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null) return 'ID 토큰 획득 실패';
+
+      final data = await socialLoginMobile(provider: 'google', idToken: idToken);
+      final status = data['statusCode'];
+
+      if (status == 200 || status == 201) {
+        final access = data['access'];
+        final refresh = data['refresh'];
+        if (access != null && refresh != null) {
+          await _saveTokens(access, refresh);
+          scheduleTokenRefresh();
+        }
+        return 'success';
+      } else if (status == 202) {
+        return 'signup_required:${json.encode(data['user_data'])}';
+      } else {
+        return data['message'] ?? data['error'] ?? '알 수 없는 오류';
+      }
+    } catch (e) {
+      return 'OAuth 처리 오류: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+
 
   /// ===== 토큰 갱신 =====
   Future<bool> _refreshTokenIfNeeded() async {
