@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:html' as html;
+
 import 'package:provider/provider.dart';
 import 'services/auth_service.dart';
 import 'providers/auth_provider.dart';
@@ -74,7 +74,7 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     if (kIsWeb) {
-      final uri = Uri.parse(html.window.location.href);
+      final uri = Uri.base; // dart:html 없이 현재 URL 가져오기
       if (uri.fragment.startsWith('code=')) {
         _oauthCode = uri.fragment.substring(5);
       } else if (uri.queryParameters.containsKey('code')) {
@@ -104,15 +104,26 @@ class _MyAppState extends State<MyApp> {
   }
 
   Widget _buildInitialScreen(AuthProvider auth) {
-    final uri = Uri.parse(html.window.location.href);
+    // dart:html 없이 현재 URL 가져오기
+    final uri = Uri.base;
     print(uri);
+
     // --------------------
     // OAuth 리디렉션 처리
     // --------------------
     final isOAuthCallback = uri.path == Uri.parse(ApiConstants.googleRedirect).path;
     if (!_handledOAuthCode && isOAuthCallback) {
       _handledOAuthCode = true;
-      return OAuthCallbackScreen(code: _oauthCode);
+
+      // fragment 또는 query parameter에서 code 추출
+      String? code;
+      if (uri.fragment.startsWith('code=')) {
+        code = uri.fragment.substring(5);
+      } else if (uri.queryParameters.containsKey('code')) {
+        code = uri.queryParameters['code'];
+      }
+
+      return OAuthCallbackScreen(code: code);
     }
 
     // --------------------
@@ -120,5 +131,6 @@ class _MyAppState extends State<MyApp> {
     // --------------------
     return auth.accessToken == null ? const LoginScreen() : const HomeScreen();
   }
+
 
 }

@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 
-import 'dart:js' as js;
+// import 'dart:js' as js;
 
-import 'dart:html' as html show window;
+// import 'dart:html' as html show window;
 
 class OAuthCallbackScreen extends StatefulWidget {
   final String? code; // <- 인증 코드 전달받음
@@ -58,10 +58,11 @@ class _OAuthCallbackScreenState extends State<OAuthCallbackScreen> {
         });
         if (!mounted) return;
 
-        if (kIsWeb) {
-          html.window.location.href = '/login';
-          return; // 페이지가 새로고침되므로 아래 코드는 실행되지 않음
-        }
+        // if (kIsWeb) {
+        //
+        //   Navigator.pushReplacementNamed(context, '/login');
+        //   return; // 페이지가 새로고침되므로 아래 코드는 실행되지 않음
+        // }
         Navigator.pushReplacementNamed(context, '/home');
       }
       // 회원가입 추가 정보 필요

@@ -11,7 +11,7 @@ import '../widgets/custom_textfield_widget.dart';
 import '../services/auth_service.dart';
 
 
-import 'dart:html' as html show window;
+// import 'dart:html' as html show window;
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -144,10 +144,10 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
               onPressed: () {
                 Navigator.pop(context);
                 if (respStr.contains('성공')) {
-                  if (kIsWeb) {
-                    html.window.location.href = '/login';
-                    return; // 페이지가 새로고침되므로 아래 코드는 실행되지 않음
-                  }
+                  // if (kIsWeb) {
+                  //   html.window.location.href = '/login';
+                  //   return; // 페이지가 새로고침되므로 아래 코드는 실행되지 않음
+                  // }
                   Navigator.pushReplacementNamed(context, '/login');
                 }
               },

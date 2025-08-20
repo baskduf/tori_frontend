@@ -8,8 +8,9 @@ import '../main.dart';
 import '../providers/auth_provider.dart';
 import '../services/gem_api.dart';
 import 'dart:async';
-import 'dart:js' as js;
+// import 'dart:js' as js;
 import 'kakao_pay_terms_screen.dart';
+import '../services/buy_gem.dart';
 
 class GemStoreScreen extends StatefulWidget {
   const GemStoreScreen({super.key});
@@ -91,28 +92,47 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
     }, onDone: () => _purchaseSub?.cancel(), onError: (e) => debugPrint('purchaseStream error: $e'));
   }
 
-  Future<void> _buyGem(int amount) async {
-    setState(() => _busy = true);
-    final productId = productIdByAmount[amount]!;
+  // Future<void> _buyGem(int amount) async {
+  //   setState(() => _busy = true);
+  //   final productId = productIdByAmount[amount]!;
+  //
+  //   try {
+  //     if (kIsWeb) {
+  //       final token = js.context.callMethod('startGooglePayPurchase', [productId]) as String?;
+  //       if (token == null || token.isEmpty) {
+  //         _snack('웹 결제 토큰을 받지 못했습니다.');
+  //       } else {
+  //         await _verifyPurchase(productId, token, 'web_${DateTime.now().millisecondsSinceEpoch}');
+  //       }
+  //     } else {
+  //       final pd = _products.firstWhere(
+  //             (p) => p.id == productId,
+  //         orElse: () => throw Exception('상품($productId)이 스토어에 없습니다.'),
+  //       );
+  //       final param = iap.PurchaseParam(productDetails: pd);
+  //       await _iap.buyConsumable(purchaseParam: param);
+  //     }
+  //   } catch (e) {
+  //     _snack('결제 요청 실패: $e');
+  //   } finally {
+  //     setState(() => _busy = false);
+  //   }
+  // }
 
+  // 버튼에서 호출할 공용 buyGem 래퍼
+  Future<void> _onBuyGem(int amount) async {
+    setState(() => _busy = true);
     try {
-      if (kIsWeb) {
-        final token = js.context.callMethod('startGooglePayPurchase', [productId]) as String?;
-        if (token == null || token.isEmpty) {
-          _snack('웹 결제 토큰을 받지 못했습니다.');
-        } else {
-          await _verifyPurchase(productId, token, 'web_${DateTime.now().millisecondsSinceEpoch}');
-        }
-      } else {
-        final pd = _products.firstWhere(
-              (p) => p.id == productId,
-          orElse: () => throw Exception('상품($productId)이 스토어에 없습니다.'),
-        );
-        final param = iap.PurchaseParam(productDetails: pd);
-        await _iap.buyConsumable(purchaseParam: param);
-      }
+      await buyGem(
+        amount: amount,
+        productIdByAmount: productIdByAmount,
+        products: _products,            // 모바일 전용
+        iapInstance: _iap,              // 모바일 전용
+        showSnack: _snack,              // 공용
+        verifyPurchase: _verifyPurchase, // 웹 전용
+      );
     } catch (e) {
-      _snack('결제 요청 실패: $e');
+      _snack('결제 실패: $e');
     } finally {
       setState(() => _busy = false);
     }
@@ -206,7 +226,17 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: ElevatedButton(
-                        onPressed: _busy ? null : () => _buyGem(amt),
+                        onPressed: _busy ? null : () async {
+                          setState(() => _busy = true);
+
+                          try {
+                            await _onBuyGem(amt); // 래퍼 함수 호출
+                          } catch (e) {
+                            _snack('결제 실패: $e');
+                          } finally {
+                            setState(() => _busy = false);
+                          }
+                        },
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                           shape: RoundedRectangleBorder(

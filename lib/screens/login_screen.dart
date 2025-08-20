@@ -10,9 +10,9 @@ import '../widgets/app_footer_info_widget.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../api/api_constants.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:js' as js;
-
-import 'dart:html' as html;
+// import 'dart:js' as js;
+import 'package:url_launcher/url_launcher.dart';
+// import 'dart:html' as html;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -24,17 +24,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final _apiService = ApiService();
 
-// Google 로그인 버튼 클릭 시
-  void _handleGoogleLoginWeb() {
-    final clientId = '946190465802-87b8ua61njftieqp6q4lhkme255q2tqa.apps.googleusercontent.com';
-    final redirectUri = ApiConstants.googleRedirect;
 
-    // GIS 팝업 실행
-    js.context.callMethod('googleLoginPopup', [clientId, redirectUri]);
-  }
-
-
-  void _googleLoginRedirect() {
+  Future<void> _googleLoginRedirect() async {  // <-- async 추가
     final clientId = '946190465802-87b8ua61njftieqp6q4lhkme255q2tqa.apps.googleusercontent.com';
     final redirectUri = ApiConstants.googleRedirect;
 
@@ -45,7 +36,18 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         '&response_type=code'
         '&scope=email%20profile%20openid';
 
-    html.window.location.href = authUrl; // 리디렉션
+    final uri = Uri.parse(authUrl);
+    if (kIsWeb) {
+      // 웹: 현재 창에서 열기
+      if (!await launchUrl(uri, mode: LaunchMode.platformDefault)) {
+        throw 'Could not launch $authUrl';
+      }
+    } else {
+      // 모바일: 외부 브라우저
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        throw 'Could not launch $authUrl';
+      }
+    }
   }
 
 
