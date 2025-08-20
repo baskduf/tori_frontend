@@ -34,6 +34,7 @@ class _LogoState extends State<Logo> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
+
   @override
   Widget build(BuildContext context) {
     return FadeTransition(
@@ -41,6 +42,18 @@ class _LogoState extends State<Logo> with SingleTickerProviderStateMixin {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // 로고 이미지
+          Opacity(
+            opacity: 0.8, // 불투명도 조절 (0.0~1.0)
+            child: Image.asset(
+              'assets/icon/tori_logo.png',
+              width: 80, // 적당한 가로 크기
+              height: 80, // 적당한 세로 크기
+              fit: BoxFit.contain,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // 기존 텍스트 + 아이콘
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -83,4 +96,5 @@ class _LogoState extends State<Logo> with SingleTickerProviderStateMixin {
       ),
     );
   }
+
 }

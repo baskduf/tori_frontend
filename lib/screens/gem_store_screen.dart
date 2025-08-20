@@ -9,7 +9,7 @@ import '../providers/auth_provider.dart';
 import '../services/gem_api.dart';
 import 'dart:async';
 import 'dart:js' as js;
-import '../api/api_constants.dart';
+import 'kakao_pay_terms_screen.dart';
 
 class GemStoreScreen extends StatefulWidget {
   const GemStoreScreen({super.key});
@@ -236,6 +236,7 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
                             ),
                           ],
                         ),
+
                       ),
                     );
                   },
@@ -246,6 +247,32 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
                   padding: EdgeInsets.all(16),
                   child: CircularProgressIndicator(),
                 ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const KakaoPayTermsScreen(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[700],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: const Text(
+                  '이용약관 확인',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white70,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
             ],
           ),
         ),

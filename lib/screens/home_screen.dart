@@ -10,6 +10,7 @@ import '../providers/auth_provider.dart';
 import '../services/auth_service.dart';
 import '../services/gem_api.dart';
 import '../widgets/logo_widget.dart';
+import '../widgets/app_footer_info_widget.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class HomeScreen extends StatefulWidget {
@@ -141,8 +142,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
     );
   }
-
-
   @override
   Widget build(BuildContext context) {
     const backgroundColor = Color(0xFF121212);
@@ -363,10 +362,30 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               ),
             ),
           ),
+
+          // 📌 하단 정보 텍스트
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8.0, left: 16.0, right: 16.0),
+              child: Opacity(
+                opacity: 0.5,
+                child: Text(
+                  '834-06-03324 토리 최원빈 경산시 조영동 578-12 010-9251-1437',
+                  textAlign: TextAlign.left,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w400,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
-
 
 }

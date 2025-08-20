@@ -6,6 +6,7 @@ import 'package:tori_frontend/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../widgets/app_footer_info_widget.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../api/api_constants.dart';
 import 'package:flutter/foundation.dart';
@@ -171,6 +172,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
                 const SizedBox(height: 24),
 
+                const AppFooterInfo(),
 
               ],
             ),
