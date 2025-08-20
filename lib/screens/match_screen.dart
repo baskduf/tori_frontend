@@ -36,10 +36,14 @@ class MatchScreen extends StatefulWidget {
 }
 
 class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStateMixin {
+
   late MatchStatus _status;
   String _matchedUserName = '';
   String? _matchedUserImageUrl = '';
+  int _matchedUserAge = 0;
+  String _matchedUserGender = '';
   Timer? _responseTimer;
+
   final int _responseTimeoutSeconds = 6;
 
   late WebSocketChannel _channel;
@@ -99,7 +103,13 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
         final data = json.decode(message);
         switch (data['type']) {
           case 'match_found':
-            _onMatchFound(data['partner'], data['partner_image_url']);
+            final partnerData = {
+              'name': data['partner'],
+              'image_url': data['partner_image_url'] ?? '',
+              'age': data['partner_age'],
+              'gender': data['partner_gender'],
+            };
+            _onMatchFound(partnerData);
             break;
           case 'match_response':
             _onMatchResponse(data['result'], data['from']);
@@ -138,10 +148,12 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
   }
 
 
-  void _onMatchFound(String partnerName, dynamic partnerImageUrl) {
+  void _onMatchFound(Map<String, dynamic> partner) {
     setState(() {
-      _matchedUserName = partnerName;
-      _matchedUserImageUrl = partnerImageUrl ?? '';
+      _matchedUserName = partner['name'];
+      _matchedUserImageUrl = partner['image_url'] ?? '';
+      _matchedUserAge = partner['age'];       // 새로 추가
+      _matchedUserGender = partner['gender']; // 새로 추가
       _setStatus(MatchStatus.matched);
     });
   }
@@ -176,7 +188,11 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
         builder: (_) => VoiceChatScreen(
           roomName: roomName,
           signalingUrl: ApiConstants.voiceChatWs(roomName, token),
-        ),
+          userName: _matchedUserName,
+          userAge: _matchedUserAge,
+          userGender: _matchedUserGender,
+          profileUrl: _matchedUserImageUrl ?? '',
+        )
       ),
     );
 
