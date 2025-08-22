@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../layouts/responsive_scaffold.dart';
 
 class KakaoPayTermsScreen extends StatelessWidget {
   const KakaoPayTermsScreen({Key? key}) : super(key: key);

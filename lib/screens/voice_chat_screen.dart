@@ -5,6 +5,7 @@ import '../api/api_client.dart';
 import '../main.dart';
 import '../services/signaling_service.dart';
 import '../screens/match_screen.dart';
+import '../layouts/responsive_scaffold.dart';
 
 class VoiceChatScreen extends StatefulWidget {
   final String roomName;

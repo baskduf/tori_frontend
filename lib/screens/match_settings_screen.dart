@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/match_service.dart';
+import '../layouts/responsive_scaffold.dart';
 
 class MatchSettingsScreen extends StatefulWidget {
   const MatchSettingsScreen({super.key});

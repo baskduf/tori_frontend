@@ -3,18 +3,15 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'voice_chat_screen.dart';
 
 import '../widgets/searching_widget.dart';
-
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 
-import 'dart:convert';
-
+import '../layouts/responsive_scaffold.dart';
 import '../api/api_constants.dart';
 
 enum MatchStatus {

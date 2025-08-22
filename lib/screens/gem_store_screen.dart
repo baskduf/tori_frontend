@@ -8,9 +8,9 @@ import '../main.dart';
 import '../providers/auth_provider.dart';
 import '../services/gem_api.dart';
 import 'dart:async';
-// import 'dart:js' as js;
 import 'kakao_pay_terms_screen.dart';
 import '../services/buy_gem.dart';
+import '../layouts/responsive_scaffold.dart';
 
 class GemStoreScreen extends StatefulWidget {
   const GemStoreScreen({super.key});

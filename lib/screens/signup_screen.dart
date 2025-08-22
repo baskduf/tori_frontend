@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 //import 'package:recaptcha_v3/recaptcha_v3.dart';  // 변경된 import/
-
+import '../layouts/responsive_scaffold.dart';
 import '../layouts/main_layout.dart';
 import '../widgets/custom_textfield_widget.dart';
 import '../services/auth_service.dart';

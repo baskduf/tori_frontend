@@ -9,8 +9,7 @@ import '../providers/auth_provider.dart';
 import '../services/auth_service.dart';
 import '../services/gem_api.dart';
 import '../widgets/logo_widget.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-
+import '../layouts/responsive_scaffold.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../widgets/login_animation_widget.dart';
+import '../layouts/responsive_scaffold.dart';
 
 class OAuthCallbackScreen extends StatefulWidget {
   final String? code; // <- 인증 코드 전달받음

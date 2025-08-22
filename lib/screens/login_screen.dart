@@ -1,21 +1,17 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import '../layouts/main_layout.dart';
 import '../main.dart';
 import '../services/auth_service.dart';
 import '../widgets/logo_widget.dart';
-import 'package:tori_frontend/providers/auth_provider.dart';
-import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-
 import '../widgets/app_footer_info_widget.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import '../api/api_constants.dart';
 import 'package:flutter/foundation.dart';
 // import 'dart:js' as js;
 import 'package:url_launcher/url_launcher.dart';
 // import 'dart:html' as html;
+import '../layouts/responsive_scaffold.dart';
 
 
 class LoginScreen extends StatefulWidget {
