@@ -18,7 +18,7 @@ class GemStoreScreen extends StatefulWidget {
   State<GemStoreScreen> createState() => _GemStoreScreenState();
 }
 
-class _GemStoreScreenState extends State<GemStoreScreen> {
+class _GemStoreScreenState extends State<GemStoreScreen> with SingleTickerProviderStateMixin {
   late GemApi _api;
   int _balance = 0;
   bool _busy = false;
@@ -176,7 +176,6 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 무료 광고 GEM 포함한 전체 GEM 리스트
     final gemItems = [
       {'amount': 50, 'price': 0, 'isFreeAd': true}, // 무료 광고 GEM
       {'amount': 50, 'price': 1000, 'isFreeAd': false},
@@ -226,10 +225,12 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
                 itemBuilder: (context, index) {
                   final item = gemItems[index];
 
-                  return GestureDetector(
-                    onTap: _busy
-                        ? null
-                        : () async {
+                  return _GemCard(
+                    amount: item['amount'] as int,
+                    price: item['price'] as int,
+                    isFreeAd: item['isFreeAd'] as bool,
+                    busy: _busy,
+                    onTap: () async {
                       setState(() => _busy = true);
                       try {
                         if (item['isFreeAd'] as bool) {
@@ -243,58 +244,15 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
                         setState(() => _busy = false);
                       }
                     },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.grey.shade900, Colors.grey.shade800],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black54,
-                            blurRadius: 4,
-                            offset: Offset(2, 2),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.diamond, color: Colors.amber, size: 36),
-                          const SizedBox(height: 12),
-                          Text(
-                            '${item['amount']} GEM',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            item['isFreeAd'] as bool
-                                ? '광고 시청 후 획득'
-                                : '${item['price']} ₩',
-                            style: const TextStyle(fontSize: 16, color: Colors.white70),
-                          ),
-                        ],
-                      ),
-                    ),
                   );
                 },
               ),
             ),
-
             if (_busy)
               const Padding(
                 padding: EdgeInsets.all(16),
                 child: CircularProgressIndicator(color: Colors.amber),
               ),
-
-            // 이용약관 버튼
             Align(
               alignment: Alignment.bottomRight,
               child: TextButton(
@@ -315,6 +273,103 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// -------------------------
+// 카드 위젯 + 클릭 애니메이션
+// -------------------------
+class _GemCard extends StatefulWidget {
+  final int amount;
+  final int price;
+  final bool isFreeAd;
+  final bool busy;
+  final VoidCallback onTap;
+
+  const _GemCard({
+    required this.amount,
+    required this.price,
+    required this.isFreeAd,
+    required this.busy,
+    required this.onTap,
+  });
+
+  @override
+  State<_GemCard> createState() => _GemCardState();
+}
+
+class _GemCardState extends State<_GemCard> with SingleTickerProviderStateMixin {
+  double _scale = 1.0;
+
+  void _onTapDown(TapDownDetails details) {
+    if (!widget.busy) {
+      setState(() => _scale = 0.95);
+    }
+  }
+
+  void _onTapUp(TapUpDetails details) {
+    if (!widget.busy) {
+      setState(() => _scale = 1.0);
+    }
+  }
+
+  void _onTapCancel() {
+    if (!widget.busy) {
+      setState(() => _scale = 1.0);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.busy ? null : widget.onTap,
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOut,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.grey.shade900, Colors.grey.shade800],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black54,
+                blurRadius: 4,
+                offset: Offset(2, 2),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.diamond, color: Colors.amber, size: 36),
+              const SizedBox(height: 12),
+              Text(
+                '${widget.amount} GEM',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.isFreeAd ? '광고 시청 후 획득' : '${widget.price} ₩',
+                style: const TextStyle(fontSize: 16, color: Colors.white70),
+              ),
+            ],
+          ),
         ),
       ),
     );
