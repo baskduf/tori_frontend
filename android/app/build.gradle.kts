@@ -13,6 +13,8 @@ println("key.properties exists: ${keystorePropertiesFile.exists()}")
 val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(keystorePropertiesFile.inputStream())
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
     println("keyAlias: ${keystoreProperties.getProperty("keyAlias")}")
     println("keyPassword: ${keystoreProperties.getProperty("keyPassword")}")
     println("storePassword: ${keystoreProperties.getProperty("storePassword")}")

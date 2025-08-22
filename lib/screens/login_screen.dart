@@ -115,8 +115,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
                 const SizedBox(height: 24),
 
-                // 소셜 로그인 버튼
-                // 소셜 로그인 버튼
                 Column(
                   children: [
 
@@ -199,10 +197,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   ],
                 ),
 
-
                 const SizedBox(height: 24),
 
+
                 const AppFooterInfo(),
+
 
               ],
             ),

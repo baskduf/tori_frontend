@@ -34,7 +34,6 @@ class _LogoState extends State<Logo> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     return FadeTransition(
@@ -42,24 +41,25 @@ class _LogoState extends State<Logo> with SingleTickerProviderStateMixin {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 로고 이미지
-          Opacity(
-            opacity: 0.8, // 불투명도 조절 (0.0~1.0)
+          // 로고 이미지 (모서리 둥글게, 화질 최적화)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16), // 모서리 둥글게
             child: Image.asset(
-              'assets/icon/tori_logo.png',
-              width: 80, // 적당한 가로 크기
-              height: 80, // 적당한 세로 크기
-              fit: BoxFit.contain,
+              'assets/icon/tori_font_logo.png',
+              width: 120,
+              height: 120,
+              fit: BoxFit.cover, // cover로 영역 채우기
+              filterQuality: FilterQuality.high, // 고품질 리샘플링
             ),
           ),
           const SizedBox(height: 12),
-          // 기존 텍스트 + 아이콘
+          // 텍스트 + 아이콘
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(width: 10),
               Text(
-                'TORI',
+                'TORI VOICE',
                 style: TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
@@ -73,7 +73,6 @@ class _LogoState extends State<Logo> with SingleTickerProviderStateMixin {
                   ],
                 ),
               ),
-              Icon(Icons.phone, size: 40, color: Colors.white.withOpacity(0.85)),
             ],
           ),
           const SizedBox(height: 8),
@@ -96,5 +95,4 @@ class _LogoState extends State<Logo> with SingleTickerProviderStateMixin {
       ),
     );
   }
-
 }

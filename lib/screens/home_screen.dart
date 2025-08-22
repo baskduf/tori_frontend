@@ -1,17 +1,18 @@
 import 'dart:ui';
-// 웹 플랫폼에서만 임포트
-// import 'dart:html' as html show window;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../api/api_client.dart';
 import '../main.dart';
 import '../providers/auth_provider.dart';
 import '../services/auth_service.dart';
 import '../services/gem_api.dart';
 import '../widgets/logo_widget.dart';
-import '../widgets/app_footer_info_widget.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -325,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
           // LogoWidget
           Align(
-            alignment: const Alignment(0, -0.5),
+            alignment: const Alignment(0, -0.3),
             child: const Logo(),
           ),
 
@@ -368,21 +369,38 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             alignment: Alignment.bottomLeft,
             child: Padding(
               padding: const EdgeInsets.only(bottom: 8.0, left: 16.0, right: 16.0),
-              child: Opacity(
-                opacity: 0.5,
-                child: Text(
-                  '834-06-03324 토리 최원빈 경산시 조영동 578-12 010-9251-1437',
-                  textAlign: TextAlign.left,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w400,
-                    height: 1.2,
-                  ),
+              child: GestureDetector(
+                onTap: () async {
+                  final Uri url = Uri.parse('https://www.instagram.com/tonight.tori');
+                  if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('인스타그램을 열 수 없습니다.')),
+                    );
+                  }
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FaIcon(
+                      FontAwesomeIcons.instagram,
+                      size: 20,
+                      color: Colors.pinkAccent.withOpacity(0.85),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '@tonight.tori',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withOpacity(0.8),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ),
+          )
+
         ],
       ),
     );

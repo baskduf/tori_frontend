@@ -14,7 +14,6 @@ import 'screens/match_settings_screen.dart';
 import 'screens/gem_store_screen.dart';
 import 'widgets/google_oauth_callback.dart';
 import 'themes/app_theme.dart';
-import 'package:recaptcha_v3/recaptcha_v3.dart';
 import 'api/api_constants.dart'; // ApiConstants impor
 import 'package:flutter_web_plugins/url_strategy.dart';//
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -38,12 +37,6 @@ void main() async {
 
   MobileAds.instance.initialize();
 
-  // reCAPTCHA
-  try {
-    Recaptcha.ready("6LdTfKUrAAAAAKUC1-PMOS-M_WzL47GUo-0zuqQX");
-  } catch (e) {
-    print('reCAPTCHA 초기화 오류: $e');
-  }
 
   // 서비스 초기화
   final apiService = ApiService();

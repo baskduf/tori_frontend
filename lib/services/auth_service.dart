@@ -31,7 +31,6 @@ class ApiService {
     required int age,
     required String gender,
     required String tempToken,
-    String? recaptchaToken,
     io.File? profileImageFile,
     Uint8List? profileImageBytes,
   }) async {
@@ -45,9 +44,6 @@ class ApiService {
       'temp_token' : tempToken
     });
 
-    if (recaptchaToken != null) {
-      request.fields['recaptcha_token'] = recaptchaToken;
-    }
 
     // 프로필 이미지 업로드
     if (kIsWeb && profileImageBytes != null) {

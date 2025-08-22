@@ -4,7 +4,7 @@ import 'dart:io' as io;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:recaptcha_v3/recaptcha_v3.dart';  // 변경된 import
+//import 'package:recaptcha_v3/recaptcha_v3.dart';  // 변경된 import/
 
 import '../layouts/main_layout.dart';
 import '../widgets/custom_textfield_widget.dart';
@@ -106,16 +106,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
 
     try {
       // recaptcha_v3 패키지 사용법
-      String? recaptchaToken = await Recaptcha.execute('signup');
 
-      if (recaptchaToken == null || recaptchaToken == 'null returned') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('캡차 인증 실패')),
-        );
-        setState(() => _isLoading = false);
-        _animController.stop();
-        return;
-      }
 
       // 기존 signup 호출 + tempToken 추가
       String respStr = await _apiService.signup(
@@ -124,7 +115,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         gender: gender,
         profileImageBytes: kIsWeb ? _webImageBytes : null,
         profileImageFile: kIsWeb ? null : _profileImage,
-        recaptchaToken: recaptchaToken,
         tempToken: tempToken,
       );
 
@@ -321,8 +311,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                   ),
                   const SizedBox(height: 20),
 
-                  // reCAPTCHA 브랜딩 추가 (Google 정책상 필수)
-                  const RecaptchaBrand(),
                   const SizedBox(height: 20),
 
                   AnimatedSwitcher(

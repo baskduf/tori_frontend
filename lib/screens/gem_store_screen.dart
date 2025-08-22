@@ -218,7 +218,7 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
         backgroundColor: Colors.black,
         elevation: 0,
         title: const Text(
-          'Gem Store',
+          '',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
