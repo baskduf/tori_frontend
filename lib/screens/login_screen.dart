@@ -93,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = const Color(0xFF1E1E1E);
+    final backgroundColor = const Color(0xFF121212);
 
     return Scaffold(
       backgroundColor: backgroundColor,

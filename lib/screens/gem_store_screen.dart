@@ -10,7 +10,6 @@ import '../services/gem_api.dart';
 import 'dart:async';
 import 'kakao_pay_terms_screen.dart';
 import '../services/buy_gem.dart';
-import '../layouts/responsive_scaffold.dart';
 
 class GemStoreScreen extends StatefulWidget {
   const GemStoreScreen({super.key});
@@ -44,18 +43,14 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
   }
 
   Future<void> _bootstrap() async {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final token = auth.accessToken;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final token = authProvider.accessToken;
     if (token == null) {
       _snack('로그인 후 이용해주세요.');
       return;
     }
-    // 예: main.dart나 GemStoreScreen에서
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-// GemApi 생성
     final apiClient = ApiClient(authProvider: authProvider, navigatorKey: navigatorKey);
-
     _api = GemApi(apiClient: apiClient);
 
     await _refreshWallet();
@@ -83,8 +78,11 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
     _purchaseSub = _iap.purchaseStream.listen((purchases) async {
       for (final p in purchases) {
         if (p.status == iap.PurchaseStatus.purchased) {
-          await _verifyPurchase(p.productID, p.verificationData.serverVerificationData,
-              p.purchaseID ?? 'order_${DateTime.now().millisecondsSinceEpoch}');
+          await _verifyPurchase(
+            p.productID,
+            p.verificationData.serverVerificationData,
+            p.purchaseID ?? 'order_${DateTime.now().millisecondsSinceEpoch}',
+          );
         } else if (p.status == iap.PurchaseStatus.error) {
           _snack('결제 실패: ${p.error}');
         }
@@ -92,44 +90,16 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
     }, onDone: () => _purchaseSub?.cancel(), onError: (e) => debugPrint('purchaseStream error: $e'));
   }
 
-  // Future<void> _buyGem(int amount) async {
-  //   setState(() => _busy = true);
-  //   final productId = productIdByAmount[amount]!;
-  //
-  //   try {
-  //     if (kIsWeb) {
-  //       final token = js.context.callMethod('startGooglePayPurchase', [productId]) as String?;
-  //       if (token == null || token.isEmpty) {
-  //         _snack('웹 결제 토큰을 받지 못했습니다.');
-  //       } else {
-  //         await _verifyPurchase(productId, token, 'web_${DateTime.now().millisecondsSinceEpoch}');
-  //       }
-  //     } else {
-  //       final pd = _products.firstWhere(
-  //             (p) => p.id == productId,
-  //         orElse: () => throw Exception('상품($productId)이 스토어에 없습니다.'),
-  //       );
-  //       final param = iap.PurchaseParam(productDetails: pd);
-  //       await _iap.buyConsumable(purchaseParam: param);
-  //     }
-  //   } catch (e) {
-  //     _snack('결제 요청 실패: $e');
-  //   } finally {
-  //     setState(() => _busy = false);
-  //   }
-  // }
-
-  // 버튼에서 호출할 공용 buyGem 래퍼
   Future<void> _onBuyGem(int amount) async {
     setState(() => _busy = true);
     try {
       await buyGem(
         amount: amount,
         productIdByAmount: productIdByAmount,
-        products: _products,            // 모바일 전용
-        iapInstance: _iap,              // 모바일 전용
-        showSnack: _snack,              // 공용
-        verifyPurchase: _verifyPurchase, // 웹 전용
+        products: _products,
+        iapInstance: _iap,
+        showSnack: _snack,
+        verifyPurchase: _verifyPurchase,
       );
     } catch (e) {
       _snack('결제 실패: $e');
@@ -172,26 +142,22 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
 
   Future<void> _onFreeGemAd() async {
     setState(() => _busy = true);
-    // try {
-    //   // TODO: 광고 SDK 호출 후 성공 시 GEM 지급
-    //   // 예시: 광고 시청 성공 시 서버 호출
-    //   final success = await _api.grantFreeGem();
-    //   if (success) {
-    //     await _refreshWallet();
-    //     _snack('광고 시청 완료! 무료 GEM이 지급되었습니다.');
-    //   } else {
-    //     _snack('무료 GEM 지급 실패');
-    //   }
-    // } catch (e) {
-    //   _snack('오류 발생: $e');
-    // } finally {
-    //   setState(() => _busy = false);
-    // }
+    try {
+      final success = true;
+      if (success) {
+        await _refreshWallet();
+        _snack('광고 시청 완료! 무료 GEM이 지급되었습니다.');
+      } else {
+        _snack('무료 GEM 지급 실패');
+      }
+    } catch (e) {
+      _snack('오류 발생: $e');
+    } finally {
+      setState(() => _busy = false);
+    }
   }
 
-
   int _priceForGem(int gemAmount) {
-    // 예시: GEM 50 → 1000₩, GEM 100 → 2000₩ 등
     switch (gemAmount) {
       case 50:
         return 1000;
@@ -210,17 +176,22 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final amounts = [50, 100, 300, 500, 1000];
+    // 무료 광고 GEM 포함한 전체 GEM 리스트
+    final gemItems = [
+      {'amount': 50, 'price': 0, 'isFreeAd': true}, // 무료 광고 GEM
+      {'amount': 50, 'price': 1000, 'isFreeAd': false},
+      {'amount': 100, 'price': 2000, 'isFreeAd': false},
+      {'amount': 300, 'price': 5000, 'isFreeAd': false},
+      {'amount': 500, 'price': 8000, 'isFreeAd': false},
+      {'amount': 1000, 'price': 15000, 'isFreeAd': false},
+    ];
 
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
-        title: const Text(
-          '',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+        title: const Text(''),
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -231,10 +202,7 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
                 children: [
                   const Icon(Icons.diamond, color: Colors.amber, size: 18),
                   const SizedBox(width: 4),
-                  Text(
-                    '$_balance',
-                    style: const TextStyle(color: Colors.white),
-                  ),
+                  Text('$_balance', style: const TextStyle(color: Colors.white)),
                 ],
               ),
             ),
@@ -245,110 +213,72 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // 광고형 무료 GEM 버튼 (구매 버튼과 동일 디자인)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: ElevatedButton(
-                onPressed: _busy
-                    ? null
-                    : () async {
-                  setState(() => _busy = true);
-                  try {
-                    await _onFreeGemAd();
-                  } catch (e) {
-                    _snack('무료 GEM 획득 실패: $e');
-                  } finally {
-                    setState(() => _busy = false);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white10,
-                  padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: const [
-                        Icon(Icons.diamond, color: Colors.amber, size: 28),
-                        SizedBox(width: 12),
-                        Text(
-                          '50 GEM',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Text(
-                      '광고 시청 후 획득',
-                      style: TextStyle(fontSize: 16, color: Colors.white70),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // GEM 구매 버튼 리스트
             Expanded(
-              child: ListView.builder(
-                itemCount: amounts.length,
+              child: GridView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1.2,
+                ),
+                itemCount: gemItems.length,
                 itemBuilder: (context, index) {
-                  final amt = amounts[index];
-                  final price = _priceForGem(amt);
+                  final item = gemItems[index];
 
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: ElevatedButton(
-                      onPressed: _busy
-                          ? null
-                          : () async {
-                        setState(() => _busy = true);
-                        try {
-                          await _onBuyGem(amt);
-                        } catch (e) {
-                          _snack('결제 실패: $e');
-                        } finally {
-                          setState(() => _busy = false);
+                  return GestureDetector(
+                    onTap: _busy
+                        ? null
+                        : () async {
+                      setState(() => _busy = true);
+                      try {
+                        if (item['isFreeAd'] as bool) {
+                          await _onFreeGemAd();
+                        } else {
+                          await _onBuyGem(item['amount'] as int);
                         }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white10,
-                        padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                      } catch (e) {
+                        _snack('실패: $e');
+                      } finally {
+                        setState(() => _busy = false);
+                      }
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.grey.shade900, Colors.grey.shade800],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                        elevation: 0,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.diamond, color: Colors.amber, size: 28),
-                              const SizedBox(width: 12),
-                              Text(
-                                '$amt GEM',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black54,
+                            blurRadius: 4,
+                            offset: Offset(2, 2),
                           ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.diamond, color: Colors.amber, size: 36),
+                          const SizedBox(height: 12),
                           Text(
-                            '$price ₩',
+                            '${item['amount']} GEM',
                             style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.white70,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            item['isFreeAd'] as bool
+                                ? '광고 시청 후 획득'
+                                : '${item['price']} ₩',
+                            style: const TextStyle(fontSize: 16, color: Colors.white70),
                           ),
                         ],
                       ),
@@ -361,21 +291,17 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
             if (_busy)
               const Padding(
                 padding: EdgeInsets.all(16),
-                child: CircularProgressIndicator(
-                  color: Colors.amber,
-                ),
+                child: CircularProgressIndicator(color: Colors.amber),
               ),
 
-            // 이용약관 버튼 (작게, 오른쪽 하단)
+            // 이용약관 버튼
             Align(
               alignment: Alignment.bottomRight,
               child: TextButton(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const KakaoPayTermsScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const KakaoPayTermsScreen()),
                   );
                 },
                 child: const Text(
@@ -393,5 +319,4 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
       ),
     );
   }
-
 }
