@@ -1,6 +1,7 @@
 plugins {
     // 기존 플러그인들
 
+    id("com.google.gms.google-services") version "4.4.3" apply false
     // Google Services Gradle plugin version 명시
 }
 

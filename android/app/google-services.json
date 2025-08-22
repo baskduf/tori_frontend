@@ -1,1 +1,47 @@
-{"installed":{"client_id":"946190465802-m9a8phg2ggm3rveejcn0aao8uqa3ogje.apps.googleusercontent.com","project_id":"okcheon","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs"}}
+{
+  "project_info": {
+    "project_number": "946190465802",
+    "project_id": "okcheon",
+    "storage_bucket": "okcheon.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:946190465802:android:d19c0ec7e95dc7a19a98f3",
+        "android_client_info": {
+          "package_name": "com.example.tori_frontend"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "946190465802-llrpq1o8edmhpltvanhk85e2hdb5rhjq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.tori_frontend",
+            "certificate_hash": "b296081977863fb5a21440753f226501f8e9839f"
+          }
+        },
+        {
+          "client_id": "946190465802-87b8ua61njftieqp6q4lhkme255q2tqa.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDf87XjSO1GZ-XSmf0K8FEkAi0zIL9wMyY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "946190465802-87b8ua61njftieqp6q4lhkme255q2tqa.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

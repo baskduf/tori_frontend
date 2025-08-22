@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:jwt_decoder/jwt_decoder.dart';
 import '../services/auth_service.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../api/api_constants.dart';
 
 class AuthProvider with ChangeNotifier {
   // -------------------------
@@ -13,9 +14,7 @@ class AuthProvider with ChangeNotifier {
   // -------------------------
   String _status = ''; // 로그인 상태 표시
   bool _isLoading = false; // 로딩 표시
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile'], clientId: '946190465802-m9a8phg2ggm3rveejcn0aao8uqa3ogje.apps.googleusercontent.com'); // 모바일 GSI
-
-
+  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
   final ApiService apiService;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
@@ -90,7 +89,7 @@ class AuthProvider with ChangeNotifier {
     required String idToken,
   }) async {
     final response = await http.post(
-      Uri.parse('http://localhost:8000/api/auth/mobile/google-login//'),
+      Uri.parse(ApiConstants.googleMobileLogin),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'id_token': idToken}),
     );
@@ -111,6 +110,13 @@ class AuthProvider with ChangeNotifier {
       if (account == null) return '사용자가 취소함';
 
       final auth = await account.authentication;
+      print('##################################################');
+      print('Google 계정 선택됨: ${account.email}');
+
+      print('accessToken: ${auth.accessToken}');
+      print('idToken: ${auth.idToken}');
+
+
       final idToken = auth.idToken;
       if (idToken == null) return 'ID 토큰 획득 실패';
 
@@ -130,7 +136,9 @@ class AuthProvider with ChangeNotifier {
       } else {
         return data['message'] ?? data['error'] ?? '알 수 없는 오류';
       }
-    } catch (e) {
+    } catch (e, stacktrace) {
+      print('OAuth 처리 오류: $e');
+      print(stacktrace);
       return 'OAuth 처리 오류: $e';
     } finally {
       _isLoading = false;

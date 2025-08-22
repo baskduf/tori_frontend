@@ -18,12 +18,14 @@ import 'dart:convert';
 import '../api/api_constants.dart';
 
 enum MatchStatus {
-  searching,
-  matched,
-  waiting_response,
-  success,
-  rejected,
-  cancelled,
+  searching,          // 큐 대기 중
+  matched,            // 상대 발견
+  waiting_response,   // 상대 응답 대기
+  success,            // 매칭 완료
+  rejected,           // 상대 거절
+  cancelled,          // 상대 이탈
+  gemError,           // 보석 부족 / 지갑 오류
+  noSetting,          // 매칭 설정 없음
 }
 
 class MatchScreen extends StatefulWidget {
@@ -119,6 +121,12 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
             break;
           case 'match_cancelled':
             _onMatchCancelled(data['from']);
+            break;
+          case 'gem_error':
+            _setStatus(MatchStatus.gemError);  // enum에 gemError가 정의되어 있어야 함
+            break;
+          case 'no_setting':
+            _setStatus(MatchStatus.noSetting); // enum에 noSetting이 정의되어 있어야 함
             break;
         }
         // 기존 메시지 핸들러 그대로
@@ -474,6 +482,51 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
     );
   }
 
+  Widget _buildGemErrorContent() {
+    return SafeArea(
+      child: Center(
+        child: _glassContainer(
+          width: 200,
+          height: 120,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.error_outline, size: 50, color: Colors.redAccent),
+              SizedBox(height: 12),
+              Text(
+                '매칭 대상을 찾았지만, 보석이 부족합니다.',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center, // 가독성 향상
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildNoSettingContent() {
+    return Center(
+      child: _glassContainer(
+        width: 200,
+        height: 120,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.settings, size: 50, color: Colors.orangeAccent),
+            SizedBox(height: 12),
+            Text(
+              '매칭 설정이 없습니다.',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
   Widget _buildSuccessContent() {
     return Center(
       child: _glassContainer(
@@ -539,6 +592,12 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
     Widget content;
 
     switch (_status) {
+      case MatchStatus.gemError:
+        content = _buildGemErrorContent();
+        break;
+      case MatchStatus.noSetting:
+        content = _buildNoSettingContent();
+        break;
       case MatchStatus.searching:
         content = _buildSearchingContent();
         break;
