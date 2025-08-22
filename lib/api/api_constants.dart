@@ -46,6 +46,11 @@ class ApiConstants {
   static String get gemBase => '$baseServer/api/gem/';
 
   // --------------------------------
+  // Rewarded Ad
+  // --------------------------------
+  static String get rewardedAd => '${gemBase}rewarded_ad/';
+
+  // --------------------------------
   // WebSocket
   // --------------------------------
   static String matchWs(String token) => 'ws://${_wsHost()}:8000/ws/match/?token=$token';

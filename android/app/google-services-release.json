@@ -67,14 +67,6 @@
           }
         },
         {
-          "client_id": "946190465802-otagq7kvuv2v30gsp52re1vo3i9i585k.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.tori.voice",
-            "certificate_hash": "b296081977863fb5a21440753f226501f8e9839f"
-          }
-        },
-        {
           "client_id": "946190465802-47l92a6id06qhq6ipi020iabk6tgg4po.apps.googleusercontent.com",
           "client_type": 3
         }

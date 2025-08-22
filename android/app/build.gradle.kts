@@ -2,17 +2,29 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("com.google.gms.google-services")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
-// Add the dependencies for any other desired Firebase products
-// https://firebase.google.com/docs/android/setup#available-libraries
+
+import java.util.Properties
+
+
+val keystorePropertiesFile = rootProject.file("key.properties")
+println("key.properties exists: ${keystorePropertiesFile.exists()}")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
+    println("keyAlias: ${keystoreProperties.getProperty("keyAlias")}")
+    println("keyPassword: ${keystoreProperties.getProperty("keyPassword")}")
+    println("storePassword: ${keystoreProperties.getProperty("storePassword")}")
+    println("storeFile: ${keystoreProperties.getProperty("storeFile")}")
+} else {
+    println("key.properties 파일을 찾을 수 없습니다!")
+}
+
 
 android {
-    namespace = "com.example.tori_frontend"
+    namespace = "com.tori.voice"
     compileSdk = flutter.compileSdkVersion
-
-    // 🔹 NDK 버전을 최신(27)로 고정
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -25,18 +37,43 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.tori_frontend"
-
-        // 🔹 Firebase 요구사항에 맞게 minSdk를 23으로 변경
+        applicationId = "com.tori.voice"  // 릴리즈 패키지 이름
         minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // 앱 이름
+        resValue("string", "app_name", "TORI - 새로운 인연과의 만남")
+    }
+
+    val keyAlias = keystoreProperties.getProperty("keyAlias")
+    val keyPassword = keystoreProperties.getProperty("keyPassword")
+    val storePassword = keystoreProperties.getProperty("storePassword")
+    val storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
+
+    signingConfigs {
+        create("release") {
+            if (keyAlias != null && keyPassword != null && storePassword != null && storeFile != null) {
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
+                this.storePassword = storePassword
+                this.storeFile = storeFile
+            } else {
+                throw GradleException("key.properties 내용 확인 필요!")
+            }
+        }
     }
 
     buildTypes {
-        release {
+        debug {
+//            applicationIdSuffix = ".debug"  // com.tori.voice.debug
             signingConfig = signingConfigs.getByName("debug")
+        }
+        release {
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
@@ -44,8 +81,6 @@ android {
 dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.1.0"))
     implementation("com.google.firebase:firebase-analytics")
-    // implementation("com.google.firebase:firebase-auth")
-    // implementation("com.google.firebase:firebase-firestore")
 }
 
 flutter {

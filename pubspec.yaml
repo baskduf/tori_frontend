@@ -37,6 +37,7 @@ dependencies:
   recaptcha_v3: ^0.2.0
   webview_flutter: ^4.4.2
   url_launcher: ^6.1.10
+  google_mobile_ads: ^5.2.0
   webview_flutter_android: ^3.12.1
   webview_flutter_wkwebview: ^3.9.4
   flutter_launcher_icons: ^0.11.0

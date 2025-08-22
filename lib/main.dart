@@ -16,7 +16,8 @@ import 'widgets/google_oauth_callback.dart';
 import 'themes/app_theme.dart';
 import 'package:recaptcha_v3/recaptcha_v3.dart';
 import 'api/api_constants.dart'; // ApiConstants impor
-import 'package:flutter_web_plugins/url_strategy.dart';// t
+import 'package:flutter_web_plugins/url_strategy.dart';//
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 // --------------------
 // 1️⃣ 전역 navigatorKey
@@ -30,8 +31,12 @@ late final AuthProvider authProvider;
 late final ApiClient apiClient;
 late final MatchService matchService;
 
+
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  MobileAds.instance.initialize();
 
   // reCAPTCHA
   try {
