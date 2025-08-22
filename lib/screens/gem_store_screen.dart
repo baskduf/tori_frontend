@@ -170,6 +170,26 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
     super.dispose();
   }
 
+  Future<void> _onFreeGemAd() async {
+    setState(() => _busy = true);
+    // try {
+    //   // TODO: 광고 SDK 호출 후 성공 시 GEM 지급
+    //   // 예시: 광고 시청 성공 시 서버 호출
+    //   final success = await _api.grantFreeGem();
+    //   if (success) {
+    //     await _refreshWallet();
+    //     _snack('광고 시청 완료! 무료 GEM이 지급되었습니다.');
+    //   } else {
+    //     _snack('무료 GEM 지급 실패');
+    //   }
+    // } catch (e) {
+    //   _snack('오류 발생: $e');
+    // } finally {
+    //   setState(() => _busy = false);
+    // }
+  }
+
+
   int _priceForGem(int gemAmount) {
     // 예시: GEM 50 → 1000₩, GEM 100 → 2000₩ 등
     switch (gemAmount) {
@@ -192,93 +212,164 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
   Widget build(BuildContext context) {
     final amounts = [50, 100, 300, 500, 1000];
 
-
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Gem Store'),
+        backgroundColor: Colors.black,
+        elevation: 0,
+        title: const Text(
+          'Gem Store',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         actions: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Chip(
-              backgroundColor: Colors.blueGrey.shade700,
+              backgroundColor: Colors.white12,
               label: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.diamond, color: Colors.amber),
+                  const Icon(Icons.diamond, color: Colors.amber, size: 18),
                   const SizedBox(width: 4),
-                  Text('$_balance'),
+                  Text(
+                    '$_balance',
+                    style: const TextStyle(color: Colors.white),
+                  ),
                 ],
               ),
             ),
           ),
         ],
       ),
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Expanded(
-                child: ListView.builder(
-                  itemCount: amounts.length,
-                  itemBuilder: (context, index) {
-                    final amt = amounts[index];
-                    final price = _priceForGem(amt); // 5000₩ 등 표시
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: ElevatedButton(
-                        onPressed: _busy ? null : () async {
-                          setState(() => _busy = true);
-
-                          try {
-                            await _onBuyGem(amt); // 래퍼 함수 호출
-                          } catch (e) {
-                            _snack('결제 실패: $e');
-                          } finally {
-                            setState(() => _busy = false);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // 광고형 무료 GEM 버튼 (구매 버튼과 동일 디자인)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: ElevatedButton(
+                onPressed: _busy
+                    ? null
+                    : () async {
+                  setState(() => _busy = true);
+                  try {
+                    await _onFreeGemAd();
+                  } catch (e) {
+                    _snack('무료 GEM 획득 실패: $e');
+                  } finally {
+                    setState(() => _busy = false);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white10,
+                  padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(Icons.diamond, color: Colors.amber, size: 28),
+                        SizedBox(width: 12),
+                        Text(
+                          '50 GEM',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
-                          backgroundColor: Colors.blueGrey.shade700,
-                          elevation: 4,
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.diamond, color: Colors.amber, size: 28),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '$amt GEM',
-                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              '$price ₩',
-                              style: TextStyle(fontSize: 16, color: Colors.white70),
-                            ),
-                          ],
-                        ),
-
-                      ),
-                    );
-                  },
+                      ],
+                    ),
+                    const Text(
+                      '광고 시청 후 획득',
+                      style: TextStyle(fontSize: 16, color: Colors.white70),
+                    ),
+                  ],
                 ),
               ),
-              if (_busy)
-                const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: CircularProgressIndicator(),
+            ),
+
+            // GEM 구매 버튼 리스트
+            Expanded(
+              child: ListView.builder(
+                itemCount: amounts.length,
+                itemBuilder: (context, index) {
+                  final amt = amounts[index];
+                  final price = _priceForGem(amt);
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: ElevatedButton(
+                      onPressed: _busy
+                          ? null
+                          : () async {
+                        setState(() => _busy = true);
+                        try {
+                          await _onBuyGem(amt);
+                        } catch (e) {
+                          _snack('결제 실패: $e');
+                        } finally {
+                          setState(() => _busy = false);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white10,
+                        padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.diamond, color: Colors.amber, size: 28),
+                              const SizedBox(width: 12),
+                              Text(
+                                '$amt GEM',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            '$price ₩',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            if (_busy)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(
+                  color: Colors.amber,
                 ),
-              const SizedBox(height: 16),
-              ElevatedButton(
+              ),
+
+            // 이용약관 버튼 (작게, 오른쪽 하단)
+            Align(
+              alignment: Alignment.bottomRight,
+              child: TextButton(
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -287,25 +378,20 @@ class _GemStoreScreenState extends State<GemStoreScreen> {
                     ),
                   );
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[700],
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
                 child: const Text(
-                  '이용약관 확인',
+                  '이용약관',
                   style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white70,
+                    fontSize: 12,
+                    color: Colors.white38,
+                    decoration: TextDecoration.underline,
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
     );
   }
+
 }
