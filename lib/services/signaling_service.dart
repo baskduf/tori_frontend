@@ -19,6 +19,9 @@ class SignalingService {
   RTCPeerConnection? _peerConnection;
   MediaStream? _localStream;
 
+  // 원격 오디오용 renderer
+  final _remoteRenderer = RTCVideoRenderer();
+
   Timer? _reconnectTimer;
 
   final Map<String, dynamic> _iceServers = {
@@ -38,6 +41,7 @@ class SignalingService {
   Future<void> connect() async {
     await _openUserMedia();
     await _createPeerConnection();
+    await _remoteRenderer.initialize(); // renderer 초기화
     _connectWebSocket();
   }
 
@@ -46,18 +50,25 @@ class SignalingService {
       'audio': true,
       'video': false,
     });
+
+    // 로컬 마이크 트랙 존재 여부 확인
+    print('Local audio tracks: ${_localStream?.getAudioTracks().length}');
   }
 
   Future<void> _createPeerConnection() async {
     _peerConnection = await createPeerConnection(_iceServers);
 
+    // 로컬 오디오 트랙 추가
     _localStream?.getAudioTracks().forEach((track) {
       _peerConnection?.addTrack(track, _localStream!);
     });
 
-    _peerConnection?.onTrack = (RTCTrackEvent event) {
+    // 원격 트랙 이벤트
+    _peerConnection?.onTrack = (RTCTrackEvent event) async {
       if (event.streams.isNotEmpty) {
-        onAddRemoteStream(event.streams[0]);
+        final remoteStream = event.streams[0];
+        _remoteRenderer.srcObject = remoteStream; // 원격 오디오 연결
+        onAddRemoteStream(remoteStream);
       }
     };
 
@@ -143,11 +154,13 @@ class SignalingService {
   }
 
   MediaStream? get localStream => _localStream;
+  RTCVideoRenderer get remoteRenderer => _remoteRenderer;
 
   void dispose() {
     _reconnectTimer?.cancel();
     _localStream?.dispose();
     _peerConnection?.close();
+    _remoteRenderer.dispose();
     _channel?.sink.close();
   }
 }

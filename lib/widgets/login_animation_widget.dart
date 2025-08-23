@@ -76,18 +76,38 @@ class _LoginAnimationWidgetState extends State<LoginAnimationWidget>
           top: MediaQuery.of(context).size.height / 2 + 40, // 아이콘 바로 아래
           left: 0,
           right: 0,
-          child: const Center(
-            child: Text(
-              '로그인 진행중입니다. 잠시만 기다려주세요 😄',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white70,
-                fontWeight: FontWeight.w600,
+          child: Column(
+            children: [
+              const Center(
+                child: Text(
+                  '로그인 진행중입니다. 잠시만 기다려주세요 😄',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
-              textAlign: TextAlign.center,
-            ),
+              const SizedBox(height: 8), // 간격
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, '/login');
+                },
+                child: const Text(
+                  '로그인이 지속적으로 안되면 홈 화면으로 갔다가 다시 시도해보세요 😢',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                    decoration: TextDecoration.underline, // 밑줄
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
           ),
         ),
+
       ],
     );
   }

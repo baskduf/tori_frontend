@@ -1,17 +1,15 @@
+import 'dart:convert';
 import 'dart:ui';
 import 'dart:typed_data';
 import 'dart:io' as io;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-//import 'package:recaptcha_v3/recaptcha_v3.dart';  // 변경된 import/
 import '../layouts/responsive_scaffold.dart';
-import '../layouts/main_layout.dart';
 import '../widgets/custom_textfield_widget.dart';
 import '../services/auth_service.dart';
+import '../widgets/logo_widget.dart';
 
-
-// import 'dart:html' as html show window;
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -95,8 +93,16 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     if (!_formKey.currentState!.validate() ||
         (!kIsWeb && _profileImage == null) ||
         (kIsWeb && _webImageBytes == null)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('모든 필드를 채우고 프로필 사진을 선택하세요')),
+      print('폼 유효성 실패 또는 이미지 없음');
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('입력 오류'),
+          content: const Text('모든 필드를 채우고 프로필 사진을 선택하세요'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('확인'))
+          ],
+        ),
       );
       return;
     }
@@ -105,11 +111,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     _animController.repeat(reverse: true);
 
     try {
-      // recaptcha_v3 패키지 사용법
-
-
-      // 기존 signup 호출 + tempToken 추가
-      String respStr = await _apiService.signup(
+      final resp = await _apiService.signup(
         username: _usernameController.text.trim(),
         age: int.tryParse(_ageController.text) ?? 18,
         gender: gender,
@@ -123,21 +125,28 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
 
       if (!mounted) return;
 
-      // 서버 응답을 팝업으로 표시
+      String message;
+      try {
+        final jsonResp = jsonDecode(resp);
+        if (jsonResp is Map<String, dynamic>) {
+          message = jsonResp['message'] ?? jsonResp['error'] ?? resp;
+        } else {
+          message = resp;
+        }
+      } catch (_) {
+        message = resp;
+      }
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('회원가입 결과'),
-          content: Text(respStr),
+          title:  Text(''),
+          content: Text(message),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                if (respStr.contains('성공')) {
-                  // if (kIsWeb) {
-                  //   html.window.location.href = '/login';
-                  //   return; // 페이지가 새로고침되므로 아래 코드는 실행되지 않음
-                  // }
+                if (message.contains('성공')) {
                   Navigator.pushReplacementNamed(context, '/login');
                 }
               },
@@ -151,11 +160,21 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       setState(() => _isLoading = false);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('오류가 발생했습니다: $e')),
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('오류'),
+          content: Text('$e'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('확인')),
+          ],
+        ),
       );
     }
   }
+
+
 
 
   Widget _glassContainer({required Widget child, EdgeInsetsGeometry? padding}) {
@@ -239,12 +258,16 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    return MainLayout(
-      title: '회원가입',
-      appBarActions: [],
-      appBarBackgroundColor: Colors.transparent,
-      appBarIconColor: Colors.white70,
-      child: Container(
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: const Text(''),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: const [],
+        iconTheme: const IconThemeData(color: Colors.white70),
+      ),
+      body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -263,6 +286,9 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
               key: _formKey,
               child: Column(
                 children: [
+                  const SizedBox(height: 20), // 상단 여백
+                  Logo(), // 기존 구현된 Logo 위젯
+                  const SizedBox(height: 32), // 로고와 아이디 입력 사이 간격
                   _glassContainer(
                     child: CustomTextField(
                       hint: '아이디',
@@ -310,9 +336,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  const SizedBox(height: 20),
-
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 400),
                     child: _isLoading
@@ -334,4 +357,5 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       ),
     );
   }
+
 }

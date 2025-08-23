@@ -259,16 +259,41 @@ class _MatchSettingsScreenState extends State<MatchSettingsScreen>
                 _glassContainer(child: _buildPreferredGenderDropdown()),
                 const SizedBox(height: 32),
                 const Text(
-                  '선호 나이대',
+                  '선호 나이',
                   style: TextStyle(fontSize: 18, color: Colors.white),
                 ),
                 const SizedBox(height: 12),
                 _glassContainer(child: _buildAgeRangeSlider()),
                 const SizedBox(height: 32),
-                const Text(
-                  '반경 (킬로미터)',
-                  style: TextStyle(fontSize: 18, color: Colors.white),
+                Row(
+                  mainAxisSize: MainAxisSize.min, // 텍스트 길이만큼만 차지
+                  children: [
+                    const Text(
+                      '거리',
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                    const SizedBox(width: 8), // 텍스트 간격
+                    Row(
+                      children: const [
+                        Text(
+                          '(준비중)',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey, // 회색으로 표시
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Icon(
+                          Icons.build, // 수리 망치 아이콘
+                          size: 16,
+                          color: Colors.grey,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
+
                 const SizedBox(height: 12),
                 _glassContainer(child: _buildRadiusSlider()),
                 const SizedBox(height: 40),

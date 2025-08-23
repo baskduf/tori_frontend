@@ -25,7 +25,6 @@ class ApiService {
     return null;
   }
 
-  /// ===== 회원가입 =====
   Future<String> signup({
     required String username,
     required int age,
@@ -41,9 +40,8 @@ class ApiService {
       'username': username,
       'age': age.toString(),
       'gender': gender,
-      'temp_token' : tempToken
+      'temp_token': tempToken,
     });
-
 
     // 프로필 이미지 업로드
     if (kIsWeb && profileImageBytes != null) {
@@ -60,21 +58,38 @@ class ApiService {
       ));
     }
 
-    final response = await request.send();
-    final respStr = await response.stream.bytesToString();
-    print('Signup response: ${response.statusCode}, body: $respStr');
-
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return "회원가입 성공!";
-    }
-
     try {
-      final jsonBody = jsonDecode(respStr);
-      return jsonBody.values.first[0].toString();
-    } catch (_) {
-      return "회원가입 실패";
+      final response = await request.send();
+      final respStr = await response.stream.bytesToString();
+      print('Signup response: ${response.statusCode}, body: $respStr');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return "회원가입이 성공적으로 완료되었습니다! 🎉\n환영합니다, $username 님!";
+      }
+
+      // 실패 시 JSON 파싱
+      final Map<String, dynamic> jsonBody = jsonDecode(respStr);
+
+      // error 또는 message 키 확인
+      if (jsonBody.containsKey('error')) {
+        final error = jsonBody['error'];
+        if (error is List && error.isNotEmpty) {
+          return "회원가입 중 오류가 발생했습니다:\n- ${error.join("\n- ")}";
+        }
+        if (error is String) return "회원가입 중 오류가 발생했습니다: $error";
+      }
+
+      if (jsonBody.containsKey('message')) {
+        return "회원가입 실패: ${jsonBody['message']}";
+      }
+
+      return "회원가입에 실패했습니다. 입력 정보를 다시 확인해주세요.";
+    } catch (e) {
+      print('Signup error: $e');
+      return "회원가입 중 예기치 못한 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.";
     }
   }
+
 
   /// ===== 토큰 갱신 =====
   Future<bool> refreshAccessToken() async {

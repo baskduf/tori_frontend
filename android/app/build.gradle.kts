@@ -40,7 +40,7 @@ android {
 
     defaultConfig {
         applicationId = "com.tori.voice"  // 릴리즈 패키지 이름
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

@@ -13,6 +13,7 @@ import '../providers/auth_provider.dart';
 
 import '../layouts/responsive_scaffold.dart';
 import '../api/api_constants.dart';
+import 'package:flutter/scheduler.dart';
 
 enum MatchStatus {
   searching,          // 큐 대기 중
@@ -316,8 +317,6 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
           decoration: BoxDecoration(
             color: Colors.transparent,  // 완전 투명
             borderRadius: BorderRadius.circular(28),
-            // border: 없앰
-            // boxShadow: 없앰
           ),
           child: child,
         ),
@@ -479,28 +478,51 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildGemErrorContent() {
-    return SafeArea(
-      child: Center(
-        child: _glassContainer(
-          width: 200,
-          height: 120,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.error_outline, size: 50, color: Colors.redAccent),
-              SizedBox(height: 12),
-              Text(
-                '매칭 대상을 찾았지만, 보석이 부족합니다.',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center, // 가독성 향상
-              ),
-            ],
+  bool _isGemErrorSnackbarVisible = false;
+
+  Widget _buildSearchingContentWithGemError(BuildContext context) {
+    final previousScreen = _buildSearchingContent();
+
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (_isGemErrorSnackbarVisible) return; // 이미 표시 중이면 무시
+      _isGemErrorSnackbarVisible = true;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          padding: EdgeInsets.zero,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          content: _glassContainer(
+            width: double.infinity,
+            child: Row(
+              children: const [
+                SizedBox(width: 12),
+                Icon(Icons.error_outline, color: Colors.redAccent, size: 28),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    "앗 매칭 기회를 놓쳤어요! 젬이 조금 부족하네요 😢 광고로 무료로 충전할 수 있어요!",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.left,
+                  ),
+                ),
+                SizedBox(width: 12),
+              ],
+            ),
           ),
+          duration: Duration(seconds: 4),
         ),
-      ),
-    );
+      ).closed.then((_) => _isGemErrorSnackbarVisible = false); // 종료 시 플래그 초기화
+    });
+
+    return previousScreen;
   }
+
 
 
   Widget _buildNoSettingContent() {
@@ -586,11 +608,13 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
       );
     }
 
-    Widget content;
+    Widget? content;
 
     switch (_status) {
       case MatchStatus.gemError:
-        content = _buildGemErrorContent();
+        content = _buildSearchingContentWithGemError(context);
+        _setStatus(MatchStatus.searching);
+        _channel.sink.add(json.encode({'action': 'join_queue'}));
         break;
       case MatchStatus.noSetting:
         content = _buildNoSettingContent();
