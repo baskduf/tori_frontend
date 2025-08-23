@@ -19,10 +19,11 @@ class SignalingService {
   RTCPeerConnection? _peerConnection;
   MediaStream? _localStream;
 
-  // 원격 오디오용 renderer
+  // 원격 오디오용 renderer (필요 시)
   final _remoteRenderer = RTCVideoRenderer();
 
   Timer? _reconnectTimer;
+  bool _isConnecting = false;
 
   final Map<String, dynamic> _iceServers = {
     'iceServers': [
@@ -39,19 +40,23 @@ class SignalingService {
   });
 
   Future<void> connect() async {
-    await _openUserMedia();
+    if (_isConnecting) return;
+    _isConnecting = true;
+
+    await _initializeLocalMedia();
     await _createPeerConnection();
     await _remoteRenderer.initialize(); // renderer 초기화
     _connectWebSocket();
+
+    _isConnecting = false;
   }
 
-  Future<void> _openUserMedia() async {
+  Future<void> _initializeLocalMedia() async {
     _localStream = await navigator.mediaDevices.getUserMedia({
       'audio': true,
       'video': false,
     });
 
-    // 로컬 마이크 트랙 존재 여부 확인
     print('Local audio tracks: ${_localStream?.getAudioTracks().length}');
   }
 
@@ -67,7 +72,7 @@ class SignalingService {
     _peerConnection?.onTrack = (RTCTrackEvent event) async {
       if (event.streams.isNotEmpty) {
         final remoteStream = event.streams[0];
-        _remoteRenderer.srcObject = remoteStream; // 원격 오디오 연결
+        _remoteRenderer.srcObject = remoteStream;
         onAddRemoteStream(remoteStream);
       }
     };
@@ -87,6 +92,8 @@ class SignalingService {
   }
 
   void _connectWebSocket() {
+    if (_channel != null) return; // 이미 연결 중이면 무시
+
     _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
 
     _channel!.stream.listen(
@@ -98,9 +105,13 @@ class SignalingService {
 
   void _scheduleReconnect() {
     if (_reconnectTimer != null) return;
-    _reconnectTimer = Timer(const Duration(seconds: 3), () {
+
+    _reconnectTimer = Timer(const Duration(seconds: 3), () async {
       _reconnectTimer = null;
-      _connectWebSocket();
+
+      // 기존 연결 종료 후 새로 연결
+      await disposePeerConnection();
+      await connect();
     });
   }
 
@@ -148,19 +159,42 @@ class SignalingService {
   void _sendMessage(Map<String, dynamic> message) async {
     final token = await apiClient.getValidToken();
     if (_channel != null && token != null) {
-      final msgJson = jsonEncode(message);
-      _channel!.sink.add(msgJson);
+      _channel!.sink.add(jsonEncode(message));
     }
+  }
+
+  // PeerConnection과 Track 완전 해제
+  Future<void> disposePeerConnection() async {
+    _reconnectTimer?.cancel();
+
+    if (_peerConnection != null) {
+      for (var sender in await _peerConnection!.getSenders()) {
+        await _peerConnection!.removeTrack(sender);
+      }
+    }
+
+
+    // PeerConnection 종료
+    await _peerConnection?.close();
+    _peerConnection = null;
+
+    // LocalStream Track stop
+    _localStream?.getTracks().forEach((track) => track.stop());
+    await _localStream?.dispose();
+    _localStream = null;
+
+    // Renderer 종료
+    await _remoteRenderer.dispose();
+
+    // WebSocket 종료
+    await _channel?.sink.close();
+    _channel = null;
   }
 
   MediaStream? get localStream => _localStream;
   RTCVideoRenderer get remoteRenderer => _remoteRenderer;
 
-  void dispose() {
-    _reconnectTimer?.cancel();
-    _localStream?.dispose();
-    _peerConnection?.close();
-    _remoteRenderer.dispose();
-    _channel?.sink.close();
+  void dispose() async {
+    await disposePeerConnection();
   }
 }

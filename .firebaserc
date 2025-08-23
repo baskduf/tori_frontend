@@ -1,0 +1,16 @@
+{
+  "projects": {
+    "default": "okcheon",
+    "tori-voice": "okcheon"
+  },
+  "targets": {
+    "okcheon": {
+      "hosting": {
+        "tori-voice": [
+          "tori-voice"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
