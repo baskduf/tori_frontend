@@ -19,9 +19,10 @@ class SignalingService {
   RTCPeerConnection? _peerConnection;
   MediaStream? _localStream;
 
-  final _remoteRenderer = RTCVideoRenderer();
+  final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
   bool _disposed = false;
 
+  // 개선된 ICE 서버 설정 (더 안정적인 STUN/TURN 서버)
   final Map<String, dynamic> _iceServers = {
     'iceServers': [
       {
@@ -32,14 +33,10 @@ class SignalingService {
         'username': 'baskduf',
         'credential': '23s25fgh'
       },
+      // Google STUN 서버 (가장 안정적)
       {'urls': 'stun:stun.l.google.com:19302'},
-      {'urls': 'stun:stun1.l.google.com:19302'},
-      {'urls': 'stun:stun2.l.google.com:19302'},
-      {'urls': 'stun:stun3.l.google.com:19302'},
-      {'urls': 'stun:stun4.l.google.com:19302'},
     ],
   };
-
 
   SignalingService({
     required this.roomName,
@@ -52,49 +49,154 @@ class SignalingService {
   Future<void> connect() async {
     if (_disposed) return;
 
+    await _remoteRenderer.initialize();
     await _openUserMedia();
     await _createPeerConnection();
-    await _remoteRenderer.initialize();
     _connectWebSocket();
   }
 
   Future<void> _openUserMedia() async {
     if (_disposed) return;
 
-    // 기존 스트림 정리
     await _localStream?.dispose();
+    _localStream = null;
 
-    _localStream = await navigator.mediaDevices.getUserMedia({
-      'audio': true,
-      'video': false,
-    });
+    // 개선된 오디오 제약 조건 (노이즈 제거에 최적화)
+    final Map<String, dynamic> mediaConstraints = {
+      'audio': {
+        // 노이즈 제거 설정 강화
+        'echoCancellation': true,
+        'noiseSuppression': true,
+        'autoGainControl': false,  // 자동 볼륨 조절 활성화 (노이즈 감소에 도움)
 
-    print('Local audio tracks: ${_localStream?.getAudioTracks().length}');
+        // 샘플링 및 채널 설정 최적화
+        'channelCount': 1,       // 모노 (더 안정적)
+        'sampleRate': 16000,     // 16kHz로 낮춰서 안정성 향상 (음성용으로 충분)
+        'sampleSize': 16,
+
+        // 볼륨 관련 설정
+        'volume': 0.8,           // 볼륨을 약간 낮춰서 클리핑 방지
+        'latency': 0.02,         // 20ms 레이턴시 (너무 낮으면 버퍼 언더런 발생)
+
+        // 추가 노이즈 제거 옵션 (브라우저별로 지원 여부 다름)
+        'googEchoCancellation': true,
+        'googAutoGainControl': true,
+        'googNoiseSuppression': true,
+        'googHighpassFilter': true,
+        'googTypingNoiseDetection': true,
+        'googAudioMirroring': false,
+      },
+      'video': false
+    };
+
+    try {
+      _localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+      print('Local audio tracks: ${_localStream?.getAudioTracks().length}');
+
+      // 오디오 트랙 추가 설정
+      if (_localStream != null) {
+        for (var track in _localStream!.getAudioTracks()) {
+          // 오디오 트랙별 세부 설정
+          await track.applyConstraints({
+            'echoCancellation': true,
+            'noiseSuppression': true,
+            'autoGainControl': true,
+            'sampleRate': 16000,
+          });
+        }
+      }
+    } catch (e) {
+      print('Error accessing user media: $e');
+      // 실패시 더 기본적인 설정으로 재시도
+      try {
+        final basicConstraints = {
+          'audio': {
+            'echoCancellation': true,
+            'noiseSuppression': true,
+            'sampleRate': 16000,
+          },
+          'video': false
+        };
+        _localStream = await navigator.mediaDevices.getUserMedia(basicConstraints);
+      } catch (e2) {
+        print('Fallback media access also failed: $e2');
+      }
+    }
   }
 
   Future<void> _createPeerConnection() async {
     if (_disposed) return;
 
-    // 기존 연결 정리
     await _peerConnection?.close();
 
-    _peerConnection = await createPeerConnection(_iceServers);
+    // PeerConnection 설정 최적화
+    final config = Map<String, dynamic>.from(_iceServers);
+    config['sdpSemantics'] = 'unified-plan';  // 최신 SDP 형식 사용
 
-    // 로컬 오디오 트랙 추가
+    _peerConnection = await createPeerConnection(config);
+
+    // 로컬 오디오 트랙 추가 + 최적화된 인코딩 설정
     if (_localStream != null) {
       for (var track in _localStream!.getAudioTracks()) {
-        await _peerConnection?.addTrack(track, _localStream!);
+        final sender = await _peerConnection?.addTrack(track, _localStream!);
+        if (sender != null) {
+          final params = sender.parameters;
+          params.encodings = [
+            RTCRtpEncoding(
+              maxBitrate: 32000,    // 32kbps로 낮춰서 안정성 향상
+              maxFramerate: null,   // 오디오는 프레임레이트 제한 없음
+              scaleResolutionDownBy: null,
+            )
+          ];
+
+          // 추가 코덱 설정 (Opus 코덱 최적화)
+          try {
+            await sender.setParameters(params);
+          } catch (e) {
+            print('Failed to set sender parameters: $e');
+          }
+        }
       }
     }
 
-    // 원격 트랙 이벤트
+    // 원격 트랙 이벤트 처리 개선
     _peerConnection?.onTrack = (RTCTrackEvent event) {
       if (_disposed) return;
-
       if (event.streams.isNotEmpty) {
         final remoteStream = event.streams[0];
-        _remoteRenderer.srcObject = remoteStream;
-        onAddRemoteStream(remoteStream);
+
+        // 중복 스트림 설정 방지
+        if (_remoteRenderer.srcObject != remoteStream) {
+          // 1. 기존 트랙 정리
+          _remoteRenderer.srcObject?.getAudioTracks().forEach((track) {
+            track.stop();        // 트랙 정지
+          });
+          _remoteRenderer.srcObject = null;
+
+          // 2. 새 스트림 바인딩
+          _remoteRenderer.srcObject = remoteStream;
+
+          // 3. 새 트랙 활성화 및 볼륨 조절
+          for (var track in remoteStream.getAudioTracks()) {
+            track.enabled = true;
+
+            // 필요시 Web Audio API 또는 gainNode 활용 볼륨 조절 가능
+            // track.applyConstraints({'volume': 0.5});  // Flutter WebRTC에서 지원 여부 확인 필요
+          }
+
+          // 4. 콜백 호출
+          onAddRemoteStream(remoteStream);
+        }
+
+      }
+    };
+
+    // ICE 연결 상태 모니터링
+    _peerConnection?.onIceConnectionState = (RTCIceConnectionState state) {
+      print('ICE Connection State: $state');
+      if (state == RTCIceConnectionState.RTCIceConnectionStateFailed ||
+          state == RTCIceConnectionState.RTCIceConnectionStateDisconnected) {
+        onStatusChanged?.call('connection_unstable');
       }
     };
 
@@ -115,16 +217,14 @@ class SignalingService {
   void _connectWebSocket() async {
     if (_disposed) return;
 
-    // 기존 채널 닫기
     await _channel?.sink.close();
     _channel = null;
 
     final token = await apiClient.getValidToken();
-
     if (token == null) {
       print('WebSocket connection aborted: token expired');
       onStatusChanged?.call('token_expired');
-      return; // 토큰 없으면 연결 시도하지 않음
+      return;
     }
 
     _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
@@ -136,19 +236,14 @@ class SignalingService {
       },
       onDone: () {
         print('WebSocket connection closed');
-        if (!_disposed) {
-          onStatusChanged?.call('connection_closed');
-        }
+        if (!_disposed) onStatusChanged?.call('connection_closed');
       },
       onError: (error) {
         print('WebSocket error: $error');
-        if (!_disposed) {
-          onStatusChanged?.call('connection_error');
-        }
+        if (!_disposed) onStatusChanged?.call('connection_error');
       },
     );
   }
-
 
   Future<void> _handleMessage(Map<String, dynamic> data) async {
     if (_disposed || _peerConnection == null) return;
@@ -157,10 +252,8 @@ class SignalingService {
       case 'role_assignment':
         final role = data['role'];
         if (role == 'offer') {
-          // 역할이 offer이면 makeCall 수행
           await makeCall();
         } else if (role == 'answer') {
-          // 역할이 answer이면 offer 수신 대기
           onStatusChanged?.call('waiting_for_offer');
         }
         break;
@@ -169,8 +262,13 @@ class SignalingService {
         final offer = RTCSessionDescription(data['offer']['sdp'], data['offer']['type']);
         await _peerConnection?.setRemoteDescription(offer);
 
-        // answer 역할이면 답 생성
-        final answer = await _peerConnection!.createAnswer();
+        // Answer 생성시 오디오 최적화 옵션 추가
+        final answerConstraints = <String, dynamic>{
+          'offerToReceiveAudio': true,
+          'offerToReceiveVideo': false,
+        };
+
+        final answer = await _peerConnection!.createAnswer(answerConstraints);
         await _peerConnection?.setLocalDescription(answer);
 
         _sendMessage({
@@ -198,11 +296,16 @@ class SignalingService {
     }
   }
 
-
   Future<void> makeCall() async {
     if (_disposed || _peerConnection == null) return;
 
-    final offer = await _peerConnection!.createOffer();
+    // Offer 생성시 오디오 최적화 옵션
+    final offerConstraints = <String, dynamic>{
+      'offerToReceiveAudio': true,
+      'offerToReceiveVideo': false,
+    };
+
+    final offer = await _peerConnection!.createOffer(offerConstraints);
     await _peerConnection?.setLocalDescription(offer);
 
     _sendMessage({
@@ -216,8 +319,25 @@ class SignalingService {
 
     final token = await apiClient.getValidToken();
     if (token != null) {
-      final msgJson = jsonEncode(message);
-      _channel!.sink.add(msgJson);
+      _channel!.sink.add(jsonEncode(message));
+    }
+  }
+
+  // 런타임에 오디오 품질 조절하는 메서드 추가
+  Future<void> adjustAudioQuality(bool highQuality) async {
+    if (_peerConnection == null || _localStream == null) return;
+
+    final senders = await _peerConnection!.getSenders();
+    for (var sender in senders) {
+      if (sender.track?.kind == 'audio') {
+        final params = sender.parameters;
+        params.encodings = [
+          RTCRtpEncoding(
+            maxBitrate: highQuality ? 64000 : 24000,
+          )
+        ];
+        await sender.setParameters(params);
+      }
     }
   }
 
@@ -230,7 +350,6 @@ class SignalingService {
 
     print('Disposing SignalingService...');
 
-    // 순차적으로 리소스 정리
     await _channel?.sink.close();
     _channel = null;
 
