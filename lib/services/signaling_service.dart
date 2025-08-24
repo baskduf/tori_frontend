@@ -19,17 +19,27 @@ class SignalingService {
   RTCPeerConnection? _peerConnection;
   MediaStream? _localStream;
 
-  // 원격 오디오용 renderer (필요 시)
   final _remoteRenderer = RTCVideoRenderer();
-
-  Timer? _reconnectTimer;
-  bool _isConnecting = false;
+  bool _disposed = false;
 
   final Map<String, dynamic> _iceServers = {
     'iceServers': [
+      {
+        'urls': [
+          'turn:34.46.53.163:3478?transport=udp',
+          'turn:34.46.53.163:3478?transport=tcp',
+        ],
+        'username': 'baskduf',
+        'credential': '23s25fgh'
+      },
       {'urls': 'stun:stun.l.google.com:19302'},
+      {'urls': 'stun:stun1.l.google.com:19302'},
+      {'urls': 'stun:stun2.l.google.com:19302'},
+      {'urls': 'stun:stun3.l.google.com:19302'},
+      {'urls': 'stun:stun4.l.google.com:19302'},
     ],
   };
+
 
   SignalingService({
     required this.roomName,
@@ -40,18 +50,20 @@ class SignalingService {
   });
 
   Future<void> connect() async {
-    if (_isConnecting) return;
-    _isConnecting = true;
+    if (_disposed) return;
 
-    await _initializeLocalMedia();
+    await _openUserMedia();
     await _createPeerConnection();
-    await _remoteRenderer.initialize(); // renderer 초기화
+    await _remoteRenderer.initialize();
     _connectWebSocket();
-
-    _isConnecting = false;
   }
 
-  Future<void> _initializeLocalMedia() async {
+  Future<void> _openUserMedia() async {
+    if (_disposed) return;
+
+    // 기존 스트림 정리
+    await _localStream?.dispose();
+
     _localStream = await navigator.mediaDevices.getUserMedia({
       'audio': true,
       'video': false,
@@ -61,15 +73,24 @@ class SignalingService {
   }
 
   Future<void> _createPeerConnection() async {
+    if (_disposed) return;
+
+    // 기존 연결 정리
+    await _peerConnection?.close();
+
     _peerConnection = await createPeerConnection(_iceServers);
 
     // 로컬 오디오 트랙 추가
-    _localStream?.getAudioTracks().forEach((track) {
-      _peerConnection?.addTrack(track, _localStream!);
-    });
+    if (_localStream != null) {
+      for (var track in _localStream!.getAudioTracks()) {
+        await _peerConnection?.addTrack(track, _localStream!);
+      }
+    }
 
     // 원격 트랙 이벤트
-    _peerConnection?.onTrack = (RTCTrackEvent event) async {
+    _peerConnection?.onTrack = (RTCTrackEvent event) {
+      if (_disposed) return;
+
       if (event.streams.isNotEmpty) {
         final remoteStream = event.streams[0];
         _remoteRenderer.srcObject = remoteStream;
@@ -78,52 +99,84 @@ class SignalingService {
     };
 
     _peerConnection?.onIceCandidate = (RTCIceCandidate? candidate) {
-      if (candidate != null) {
-        _sendMessage({
-          'type': 'ice-candidate',
-          'candidate': {
-            'candidate': candidate.candidate,
-            'sdpMid': candidate.sdpMid,
-            'sdpMLineIndex': candidate.sdpMLineIndex,
-          }
-        });
-      }
+      if (_disposed || candidate == null) return;
+
+      _sendMessage({
+        'type': 'ice-candidate',
+        'candidate': {
+          'candidate': candidate.candidate,
+          'sdpMid': candidate.sdpMid,
+          'sdpMLineIndex': candidate.sdpMLineIndex,
+        }
+      });
     };
   }
 
-  void _connectWebSocket() {
-    if (_channel != null) return; // 이미 연결 중이면 무시
+  void _connectWebSocket() async {
+    if (_disposed) return;
+
+    // 기존 채널 닫기
+    await _channel?.sink.close();
+    _channel = null;
+
+    final token = await apiClient.getValidToken();
+
+    if (token == null) {
+      print('WebSocket connection aborted: token expired');
+      onStatusChanged?.call('token_expired');
+      return; // 토큰 없으면 연결 시도하지 않음
+    }
 
     _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
 
     _channel!.stream.listen(
-          (message) async => await _handleMessage(jsonDecode(message)),
-      onDone: _scheduleReconnect,
-      onError: (_) => _scheduleReconnect(),
+          (message) async {
+        if (_disposed) return;
+        await _handleMessage(jsonDecode(message));
+      },
+      onDone: () {
+        print('WebSocket connection closed');
+        if (!_disposed) {
+          onStatusChanged?.call('connection_closed');
+        }
+      },
+      onError: (error) {
+        print('WebSocket error: $error');
+        if (!_disposed) {
+          onStatusChanged?.call('connection_error');
+        }
+      },
     );
   }
 
-  void _scheduleReconnect() {
-    if (_reconnectTimer != null) return;
-
-    _reconnectTimer = Timer(const Duration(seconds: 3), () async {
-      _reconnectTimer = null;
-
-      // 기존 연결 종료 후 새로 연결
-      await disposePeerConnection();
-      await connect();
-    });
-  }
 
   Future<void> _handleMessage(Map<String, dynamic> data) async {
+    if (_disposed || _peerConnection == null) return;
+
     switch (data['type']) {
+      case 'role_assignment':
+        final role = data['role'];
+        if (role == 'offer') {
+          // 역할이 offer이면 makeCall 수행
+          await makeCall();
+        } else if (role == 'answer') {
+          // 역할이 answer이면 offer 수신 대기
+          onStatusChanged?.call('waiting_for_offer');
+        }
+        break;
+
       case 'offer':
-        await _peerConnection?.setRemoteDescription(
-          RTCSessionDescription(data['offer']['sdp'], data['offer']['type']),
-        );
+        final offer = RTCSessionDescription(data['offer']['sdp'], data['offer']['type']);
+        await _peerConnection?.setRemoteDescription(offer);
+
+        // answer 역할이면 답 생성
         final answer = await _peerConnection!.createAnswer();
         await _peerConnection?.setLocalDescription(answer);
-        _sendMessage({'type': 'answer', 'answer': {'sdp': answer.sdp, 'type': answer.type}});
+
+        _sendMessage({
+          'type': 'answer',
+          'answer': {'sdp': answer.sdp, 'type': answer.type}
+        });
         break;
 
       case 'answer':
@@ -135,66 +188,58 @@ class SignalingService {
 
       case 'ice-candidate':
         final c = data['candidate'];
-        await _peerConnection?.addCandidate(
-          RTCIceCandidate(c['candidate'], c['sdpMid'], c['sdpMLineIndex']),
-        );
+        final candidate = RTCIceCandidate(c['candidate'], c['sdpMid'], c['sdpMLineIndex']);
+        await _peerConnection?.addCandidate(candidate);
         break;
 
       case 'match_cancelled':
         onStatusChanged?.call('cancelled');
         break;
-
-      case 'match_success':
-        onStatusChanged?.call('success');
-        break;
     }
   }
 
-  void makeCall() async {
+
+  Future<void> makeCall() async {
+    if (_disposed || _peerConnection == null) return;
+
     final offer = await _peerConnection!.createOffer();
     await _peerConnection?.setLocalDescription(offer);
-    _sendMessage({'type': 'offer', 'offer': {'sdp': offer.sdp, 'type': offer.type}});
+
+    _sendMessage({
+      'type': 'offer',
+      'offer': {'sdp': offer.sdp, 'type': offer.type}
+    });
   }
 
   void _sendMessage(Map<String, dynamic> message) async {
+    if (_disposed || _channel == null) return;
+
     final token = await apiClient.getValidToken();
-    if (_channel != null && token != null) {
-      _channel!.sink.add(jsonEncode(message));
+    if (token != null) {
+      final msgJson = jsonEncode(message);
+      _channel!.sink.add(msgJson);
     }
-  }
-
-  // PeerConnection과 Track 완전 해제
-  Future<void> disposePeerConnection() async {
-    _reconnectTimer?.cancel();
-
-    if (_peerConnection != null) {
-      for (var sender in await _peerConnection!.getSenders()) {
-        await _peerConnection!.removeTrack(sender);
-      }
-    }
-
-
-    // PeerConnection 종료
-    await _peerConnection?.close();
-    _peerConnection = null;
-
-    // LocalStream Track stop
-    _localStream?.getTracks().forEach((track) => track.stop());
-    await _localStream?.dispose();
-    _localStream = null;
-
-    // Renderer 종료
-    await _remoteRenderer.dispose();
-
-    // WebSocket 종료
-    await _channel?.sink.close();
-    _channel = null;
   }
 
   MediaStream? get localStream => _localStream;
   RTCVideoRenderer get remoteRenderer => _remoteRenderer;
 
-  void dispose() async {
-    await disposePeerConnection();
+  Future<void> dispose() async {
+    if (_disposed) return;
+    _disposed = true;
+
+    print('Disposing SignalingService...');
+
+    // 순차적으로 리소스 정리
+    await _channel?.sink.close();
+    _channel = null;
+
+    await _peerConnection?.close();
+    _peerConnection = null;
+
+    await _localStream?.dispose();
+    _localStream = null;
+
+    await _remoteRenderer.dispose();
   }
 }

@@ -1,30 +1,16 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
+
 class ApiConstants {
   // --------------------------------
-  // 서버 기본 URL
+  // 서버 기본 URL (임시 배포용)
   // --------------------------------
-  static final String baseServer = _getBaseServer();
-
-  static String _getBaseServer() {
-    if (kIsWeb) {
-      return 'http://localhost:8000';
-    } else if (Platform.isAndroid) {
-      return 'http://10.0.2.2:8000';
-    } else {
-      return 'http://localhost:8000';
-    }
-
-  }
+  static final String baseServer = 'https://71a2780f2ad7.ngrok-free.app';
 
   // --------------------------------
-  // 프론트 리다이렉트 URL (동적)
+  // 프론트 리다이렉트 URL
   // --------------------------------
-  static const String defaultFrontendUrl = 'http://localhost:51577';
-  static String get frontendUrl =>
-      const String.fromEnvironment('BASE_FRONTEND', defaultValue: defaultFrontendUrl);
+  static final String frontendUrl = 'https://tori-voice.web.app';
 
   // --------------------------------
   // Auth 관련
@@ -34,7 +20,6 @@ class ApiConstants {
   static String get googleRedirect => '$frontendUrl/api/auth/oauth/google/code';
   static String get googleMobileLogin => '$baseServer/api/auth/mobile/google-login/';
 
-  // OAuth provider redirect (동적)
   static String oauthRedirect(String provider) => '$frontendUrl/api/auth/oauth/$provider/code';
 
   // --------------------------------
@@ -55,13 +40,12 @@ class ApiConstants {
   // --------------------------------
   // WebSocket
   // --------------------------------
-  static String matchWs(String token) => 'ws://${_wsHost()}:8000/ws/match/?token=$token';
+  static String matchWs(String token) => 'wss://${_wsHost()}/ws/match/?token=$token';
   static String voiceChatWs(String roomName, String token) =>
-      'ws://${_wsHost()}:8000/ws/voicechat/$roomName/?token=$token';
+      'wss://${_wsHost()}/ws/voicechat/$roomName/?token=$token';
 
   static String _wsHost() {
-    if (kIsWeb) return 'localhost';
-    if (Platform.isAndroid) return '10.0.2.2';
-    return 'localhost';
+    // ngrok 백엔드는 HTTPS를 사용하므로 host만 반환
+    return Uri.parse(baseServer).host;
   }
 }
