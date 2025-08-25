@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../api/api_client.dart';
+import '../api/api_constants.dart';
 import '../main.dart';
 import '../providers/auth_provider.dart';
 import '../services/auth_service.dart';
@@ -33,7 +36,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _bootstrap(); // 초기화 시 잔액 가져오기
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _bootstrap();
+    });
 
     _pulseController = AnimationController(
       vsync: this,
@@ -44,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
   }
+
 
   @override
   void dispose() {
@@ -109,23 +116,33 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   Future<void> _bootstrap() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final token = auth.accessToken;
+    var token = auth.accessToken;
     if (token == null) {
       _snack('로그인 후 이용해주세요.');
       return;
     }
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final apiClient = ApiClient(authProvider: authProvider, navigatorKey: navigatorKey);
-    _api = GemApi(apiClient: apiClient);
-    try {
-      final bal = await _api.fetchWallet(); // 서버에서 현재 젬 잔액 가져오기
-      setState(() => _balance = bal);      // 가져온 잔액을 화면에 반영
-    } catch (e) {
-      _snack('잔액 조회 실패: 세션이 만료되었습니다.');          // 에러 발생 시 사용자에게 안내
+    final apiClient = ApiClient(authProvider: auth, navigatorKey: navigatorKey);
+
+    // token 확인 + refresh
+    token = await apiClient.getValidToken();
+    if (token == null) {
+      _snack('로그인 후 이용해주세요.');
+      return;
     }
-    // if (!kIsWeb) await _initMobileStore();
+
+    _api = GemApi(apiClient: apiClient);
+
+    try {
+      final bal = await _api.fetchWallet();
+      setState(() => _balance = bal);
+    } catch (e) {
+      _snack('잔액 조회 실패: 세션이 만료되었습니다.');
+    }
+
+
   }
+
 
   void _snack(String message, {SnackBarAction? action}) {
     if (!mounted) return; // 비동기 이후 안전 가드

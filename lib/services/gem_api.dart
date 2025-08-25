@@ -11,7 +11,8 @@ class GemApi {
   GemApi({required this.apiClient});
 
   Future<int> fetchWallet() async {
-    final response = await apiClient.get(ApiConstants.gemBase + 'wallet/');
+    final response = await apiClient.get('${ApiConstants.gemBase}wallet/');
+    print(response.body);
     return json.decode(response.body)['balance'] as int;
   }
 

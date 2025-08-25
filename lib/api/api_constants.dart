@@ -5,7 +5,7 @@ class ApiConstants {
   // --------------------------------
   // 서버 기본 URL (임시 배포용)
   // --------------------------------
-  static final String baseServer = 'https://71a2780f2ad7.ngrok-free.app';
+  static final String baseServer = 'https://full-pianos-tie.loca.lt';
 
   // --------------------------------
   // 프론트 리다이렉트 URL
