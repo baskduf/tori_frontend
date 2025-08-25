@@ -5,7 +5,7 @@ class ApiConstants {
   // --------------------------------
   // 서버 기본 URL (임시 배포용)
   // --------------------------------
-  static final String baseServer = 'https://full-pianos-tie.loca.lt';
+  static final String baseServer = 'https://cute-toes-laugh.loca.lt';
 
   // --------------------------------
   // 프론트 리다이렉트 URL
@@ -47,5 +47,18 @@ class ApiConstants {
   static String _wsHost() {
     // ngrok 백엔드는 HTTPS를 사용하므로 host만 반환
     return Uri.parse(baseServer).host;
+  }
+
+  // 실제 AdMob Rewarded 광고 단위 ID
+  static String get rewardedAdUnitId {
+    if (kIsWeb) {
+      return ''; // 웹에서는 광고 없음
+    } else if (Platform.isAndroid) {
+      return 'ca-app-pub-9238483071028144/9553584981';
+    } else if (Platform.isIOS) {
+      return 'YOUR_IOS_AD_UNIT_ID';
+    } else {
+      return '';
+    }
   }
 }

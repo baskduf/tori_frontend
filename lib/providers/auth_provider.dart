@@ -14,7 +14,9 @@ class AuthProvider with ChangeNotifier {
   // -------------------------
   String _status = ''; // 로그인 상태 표시
   bool _isLoading = false; // 로딩 표시
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+  );
   final ApiService apiService;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 

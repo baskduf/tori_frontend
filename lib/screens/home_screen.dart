@@ -10,7 +10,7 @@ import '../api/api_constants.dart';
 import '../main.dart';
 import '../providers/auth_provider.dart';
 import '../services/auth_service.dart';
-import '../services/gem_api.dart';
+import '../api/gem_api.dart';
 import '../widgets/logo_widget.dart';
 import '../layouts/responsive_scaffold.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';

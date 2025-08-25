@@ -1,21 +1,20 @@
 import 'dart:convert';
-
-import 'package:dio/dio.dart';
-import '../providers/auth_provider.dart'; // AuthProvider import
-import '../api/api_client.dart';
-import '../api/api_constants.dart';
+import 'api_client.dart';
+import 'api_constants.dart';
 
 class GemApi {
   final ApiClient apiClient;
 
   GemApi({required this.apiClient});
 
+  // 기존 지갑 조회
   Future<int> fetchWallet() async {
     final response = await apiClient.get('${ApiConstants.gemBase}wallet/');
     print(response.body);
     return json.decode(response.body)['balance'] as int;
   }
 
+  // 구매 확인
   Future<bool> confirmPurchase({
     required String provider,
     required String productId,
@@ -33,5 +32,4 @@ class GemApi {
     );
     return response.statusCode == 200;
   }
-
 }

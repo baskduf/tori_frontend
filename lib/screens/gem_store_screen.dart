@@ -4,10 +4,12 @@ import 'package:in_app_purchase/in_app_purchase.dart' as iap;
 import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
 import '../api/api_client.dart';
+import '../api/api_constants.dart';
 import '../main.dart';
 import '../providers/auth_provider.dart';
-import '../services/gem_api.dart';
+import '../api/gem_api.dart';
 import 'dart:async';
+import '../services/reward_ad_service.dart';
 import 'kakao_pay_terms_screen.dart';
 import '../services/buy_gem.dart';
 
@@ -42,6 +44,8 @@ class _GemStoreScreenState extends State<GemStoreScreen> with SingleTickerProvid
     WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrap());
   }
 
+  late RewardedAdService _rewardedAdService;
+
   Future<void> _bootstrap() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final token = authProvider.accessToken;
@@ -53,9 +57,29 @@ class _GemStoreScreenState extends State<GemStoreScreen> with SingleTickerProvid
     final apiClient = ApiClient(authProvider: authProvider, navigatorKey: navigatorKey);
     _api = GemApi(apiClient: apiClient);
 
+    // RewardedAdService 초기화
+    _rewardedAdService = RewardedAdService(gemApi: _api);
+    _rewardedAdService.loadAd(ApiConstants.rewardedAdUnitId); // 테스트 ID: ca-app-pub-3940256099942544/5224354917
+
     await _refreshWallet();
     if (!kIsWeb) await _initMobileStore();
   }
+
+  Future<void> _onFreeGemAd() async {
+    setState(() => _busy = true);
+    try {
+      _rewardedAdService.showAd(ApiConstants.rewardedAdUnitId, () async {
+        _snack('광고 시청 완료! 무료 GEM은 서버에서 처리됩니다.');
+        // 서버 잔액 갱신은 별도로 fetch
+        _api.fetchWallet();
+      });
+    } catch (e) {
+      _snack('광고 시청 실패: $e');
+    } finally {
+      setState(() => _busy = false);
+    }
+  }
+
 
   Future<void> _refreshWallet() async {
     try {
@@ -140,39 +164,6 @@ class _GemStoreScreenState extends State<GemStoreScreen> with SingleTickerProvid
     super.dispose();
   }
 
-  Future<void> _onFreeGemAd() async {
-    setState(() => _busy = true);
-    try {
-      final success = true;
-      if (success) {
-        await _refreshWallet();
-        _snack('광고 시청 완료! 무료 GEM이 지급되었습니다.');
-      } else {
-        _snack('무료 GEM 지급 실패');
-      }
-    } catch (e) {
-      _snack('오류 발생: $e');
-    } finally {
-      setState(() => _busy = false);
-    }
-  }
-
-  int _priceForGem(int gemAmount) {
-    switch (gemAmount) {
-      case 50:
-        return 1000;
-      case 100:
-        return 2000;
-      case 300:
-        return 5000;
-      case 500:
-        return 8000;
-      case 1000:
-        return 15000;
-      default:
-        return gemAmount * 20;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -234,7 +225,11 @@ class _GemStoreScreenState extends State<GemStoreScreen> with SingleTickerProvid
                       setState(() => _busy = true);
                       try {
                         if (item['isFreeAd'] as bool) {
-                          await _onFreeGemAd();
+                          if (kIsWeb) {
+                            _snack('모바일 환경에서만 이용 가능합니다.');
+                          } else {
+                            await _onFreeGemAd();
+                          }
                         } else {
                           await _onBuyGem(item['amount'] as int);
                         }
@@ -244,6 +239,7 @@ class _GemStoreScreenState extends State<GemStoreScreen> with SingleTickerProvid
                         setState(() => _busy = false);
                       }
                     },
+
                   );
                 },
               ),
