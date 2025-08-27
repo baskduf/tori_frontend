@@ -12,6 +12,7 @@ import 'dart:async';
 import '../services/reward_ad_service.dart';
 import 'kakao_pay_terms_screen.dart';
 import '../services/buy_gem.dart';
+import '../widgets/custom_snack_bar_widget.dart';
 
 class GemStoreScreen extends StatefulWidget {
   const GemStoreScreen({super.key});
@@ -37,6 +38,16 @@ class _GemStoreScreenState extends State<GemStoreScreen> with SingleTickerProvid
   StreamSubscription<List<iap.PurchaseDetails>>? _purchaseSub;
   List<iap.ProductDetails> _products = [];
   bool _storeAvailable = false;
+
+  void _snack(String msg, {bool success = true}) {
+    if (!mounted) return;
+    CustomSnackBarWidget.show(
+      context,
+      success: success,
+      message: msg,
+    );
+  }
+
 
   @override
   void initState() {
@@ -151,11 +162,6 @@ class _GemStoreScreenState extends State<GemStoreScreen> with SingleTickerProvid
     } finally {
       setState(() => _busy = false);
     }
-  }
-
-  void _snack(String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override

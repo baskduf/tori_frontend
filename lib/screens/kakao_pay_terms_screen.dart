@@ -5,7 +5,7 @@ class KakaoPayTermsScreen extends StatelessWidget {
   const KakaoPayTermsScreen({Key? key}) : super(key: key);
 
   final String termsText = '''
-카카오페이 이용약관
+카카오페이 이용약관(BETA)
 
 1. 결제 취소
 - 결제 완료 후 7일 이내에는 전체 또는 부분 취소가 가능합니다.

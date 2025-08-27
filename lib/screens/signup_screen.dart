@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../layouts/responsive_scaffold.dart';
+import '../widgets/custom_snack_bar_widget.dart';
 import '../widgets/custom_textfield_widget.dart';
 import '../services/auth_service.dart';
 import '../widgets/logo_widget.dart';
@@ -82,12 +83,20 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('이미지 선택 오류: $e')),
-        );
+        _snack('이미지 선택 오류: $e');
       }
     }
   }
+
+  void _snack(String msg, {bool success = true}) {
+    if (!mounted) return;
+    CustomSnackBarWidget.show(
+      context,
+      success: success,
+      message: msg,
+    );
+  }
+
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate() ||

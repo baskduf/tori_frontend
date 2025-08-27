@@ -474,9 +474,32 @@ class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStat
             ],
           ),
         ),
+        const SizedBox(height: 12),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16), // 좌우 여백 추가
+          child: Text(
+            '⏳ 만약 상대방이 장시간 응답이 없을 경우\n좌측 상단 버튼을 눌러 재매칭 해주세요 😊',
+            textAlign: TextAlign.center,
+            softWrap: true,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              color: Colors.white54,
+              shadows: [
+                Shadow(
+                  color: Colors.black45,
+                  offset: Offset(0, 1),
+                  blurRadius: 1,
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
+
+
 
   bool _isGemErrorSnackbarVisible = false;
 
