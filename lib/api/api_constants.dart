@@ -5,7 +5,7 @@ class ApiConstants {
   // --------------------------------
   // 서버 기본 URL (임시 배포용)
   // --------------------------------
-  static final String baseServer = 'https://django-app-946190465802.us-central1.run.app';
+  static final String baseServer = 'https://tori-voice-back-server-946190465802.asia-northeast3.run.app';
 
   // --------------------------------
   // 프론트 리다이렉트 URL
