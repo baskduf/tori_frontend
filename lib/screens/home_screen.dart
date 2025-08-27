@@ -11,6 +11,7 @@ import '../main.dart';
 import '../providers/auth_provider.dart';
 import '../services/auth_service.dart';
 import '../api/gem_api.dart';
+import '../widgets/custom_snack_bar_widget.dart';
 import '../widgets/logo_widget.dart';
 import '../layouts/responsive_scaffold.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -114,6 +115,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
+  void _snack(String msg, {bool success = true}) {
+    if (!mounted) return;
+    CustomSnackBarWidget.show(
+      context,
+      success: success,
+      message: msg,
+    );
+  }
+
+
   Future<void> _bootstrap() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     var token = auth.accessToken;
@@ -144,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
 
-  void _snack(String message, {SnackBarAction? action}) {
+  /*void _snack(String message, {SnackBarAction? action}) {
     if (!mounted) return; // 비동기 이후 안전 가드
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
@@ -158,7 +169,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
-  }
+  }*/
+
   @override
   Widget build(BuildContext context) {
     const backgroundColor = Color(0xFF121212);
