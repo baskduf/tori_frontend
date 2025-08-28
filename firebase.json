@@ -15,6 +15,9 @@
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "rewrites": [
         { "source": "/ads.txt", "destination": "/ads.txt" },
+        { "source": "/robots.txt", "destination": "/robots.txt" },
+        { "source": "/googlefa6f1d9006f6809f.html", "destination": "/googlefa6f1d9006f6809f.html" },
+        { "source": "/sitemap.xml", "destination": "/sitemap.xml" },
         { "source": "**", "destination": "/index.html" }
       ]
     }

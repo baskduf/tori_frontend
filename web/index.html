@@ -1,74 +1,45 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-  <meta name="google-signin-client_id" content="946190465802-87b8ua61njftieqp6q4lhkme255q2tqa.apps.googleusercontent.com">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+  <title>글로벌 랜덤 음성 채팅 – 다국어 실시간 매칭</title>
 
+  <!-- SEO Meta Tags -->
+  <meta name="description"
+        content="글로벌 사용자와 랜덤으로 매칭되어 다국어로 실시간 음성 통화를 할 수 있는 플랫폼입니다. 랜덤 음성 채팅, 언어 교환, 글로벌 음성 매칭 서비스를 제공합니다.">
+  <meta name="keywords"
+        content="랜덤 음성 채팅, 실시간 음성 매칭, 다국어 음성 통화, 언어 교환 음성, 글로벌 음성 채팅, random voice chat, multilingual voice call, real-time voice matching, language exchange voice">
+
+  <!-- Open Graph / SNS 공유 최적화 -->
+  <meta property="og:title" content="글로벌 랜덤 음성 채팅 – 다국어 실시간 매칭">
+  <meta property="og:description"
+        content="글로벌 사용자와 랜덤으로 음성 매칭되어 다국어로 통화할 수 있는 실시간 음성 채팅 플랫폼입니다.">
+  <meta property="og:image" content="https://tori-voice.web.app/assets/assets/icon/favicon.png">
+  <meta property="og:url" content="https://tori-voice.web.app/">
+  <meta property="og:type" content="website">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="글로벌 랜덤 음성 채팅 – 다국어 실시간 매칭">
+  <meta name="twitter:description"
+        content="글로벌 사용자와 랜덤으로 음성 매칭되어 다국어로 통화할 수 있는 실시간 음성 채팅 플랫폼입니다.">
+  <meta name="twitter:image" content="https://tori-voice.web.app/assets/assets/icon/favicon.png">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="tori_frontend">
-  <meta name="google-adsense-account" content="ca-pub-9238483071028144">
+  <meta name="apple-mobile-web-app-title" content="Tori Voice">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/assets/icon/favicon.png">
 
-
-  <title>tori_frontend</title>
   <link rel="manifest" href="manifest.json">
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9238483071028144"
-          crossorigin="anonymous"></script>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script>
-    // 데모용 스텁: 실제로는 Google Pay 결제 성공 시 받은 토큰을 반환해야 함.
-  // Flutter에서 js.context.callMethod('startGooglePayPurchase', [productId])로 호출
-  function startGooglePayPurchase(productId) {
-  console.log('[Web] startGooglePayPurchase:', productId);
-  // TODO: Google Pay Web SDK 연동 후 실제 결제 토큰을 반환
-  const fakeToken = 'web_fake_token_' + productId + '_' + Date.now();
-  return fakeToken;
-  }
-  </script>
-  <script>
-
-<!--    function googleLoginPopup(clientId, redirectUri) {-->
-<!--      google.accounts.oauth2.initCodeClient({-->
-<!--        client_id: clientId,-->
-<!--        scope: 'email profile openid',-->
-<!--        ux_mode: 'popup',-->
-<!--        redirect_uri: redirectUri,-->
-<!--        callback: (response) => {-->
-<!--          // 해시(#) 사용으로 쿼리 손실 방지-->
-<!--          window.location.href = redirectUri + '#code=' + response.code;-->
-<!--        }-->
-<!--      }).requestCode();-->
-<!--    }-->
-
-
-
-  </script>
 </head>
-
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+<script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
